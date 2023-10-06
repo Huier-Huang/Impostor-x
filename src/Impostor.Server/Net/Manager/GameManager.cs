@@ -77,7 +77,7 @@ namespace Impostor.Server.Net.Manager
                 x.Value.GameState == GameStates.NotStarted &&
                 x.Value.PlayerCount < x.Value.Options.MaxPlayers &&
                 (_compatibilityConfig.AllowVersionMixing || x.Value.Host == null ||
-                 this._compatibilityManager.CanJoinGame(x.Value.Host.Client.GameVersion, gameVersion) == GameJoinError.None)))
+                 this._compatibilityManager.CanJoinGame(x.Value.Host.Client.GameVersion, gameVersion, out _))))
             {
                 // Check for options.
                 if (!map.HasFlag((MapFlags)(1 << (byte)game.Options.Map)))

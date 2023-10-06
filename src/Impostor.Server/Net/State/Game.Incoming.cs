@@ -153,24 +153,26 @@ namespace Impostor.Server.Net.State
             var player = client.Player;
 
             // Check if the player is running the same version as the host
-            if (_compatibilityConfig.AllowVersionMixing == false &&
-                this.Host != null && client.GameVersion != this.Host.Client.GameVersion)
+            if
+            (
+                _compatibilityConfig.AllowVersionMixing == false
+                &&
+                this.Host != null
+                &&
+                client.GameVersion != this.Host.Client.GameVersion
+                &&
+                !_compatibilityManager.CanJoinGame(Host.Client.GameVersion, client.GameVersion, out var joinError)
+                )
             {
-                var versionCheckResult = _compatibilityManager.CanJoinGame(Host.Client.GameVersion, client.GameVersion);
-                if (versionCheckResult != GameJoinError.None)
-                {
-                    return GameJoinResult.FromError(versionCheckResult);
-                }
+                return GameJoinResult.FromError(joinError);
             }
 
-            if (GameState == GameStates.Starting || GameState == GameStates.Started)
+            switch (GameState)
             {
-                return GameJoinResult.FromError(GameJoinError.GameStarted);
-            }
-
-            if (GameState == GameStates.Destroyed)
-            {
-                return GameJoinResult.FromError(GameJoinError.GameDestroyed);
+                case GameStates.Starting or GameStates.Started:
+                    return GameJoinResult.FromError(GameJoinError.GameStarted);
+                case GameStates.Destroyed:
+                    return GameJoinResult.FromError(GameJoinError.GameDestroyed);
             }
 
             // Check if;

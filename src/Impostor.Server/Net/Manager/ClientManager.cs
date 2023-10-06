@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Impostor.Api.Config;
@@ -56,6 +57,7 @@ namespace Impostor.Server.Net.Manager
 
         public async ValueTask RegisterConnectionAsync(IHazelConnection connection, string name, GameVersion clientVersion, Language language, QuickChatModes chatMode, PlatformSpecificData? platformSpecificData)
         {
+            var serverVer = $"{CompatibilityManager.SupportedVersionNames.Values.First()} - {CompatibilityManager.SupportedVersionNames.Values.Last()}";
             var versionCompare = _compatibilityManager.CanConnectToServer(clientVersion);
             if (versionCompare == ICompatibilityManager.VersionCompareResult.ServerTooOld && _compatibilityConfig.AllowFutureGameVersions && platformSpecificData != null)
             {
@@ -69,13 +71,13 @@ namespace Impostor.Server.Net.Manager
 
                 var message = versionCompare switch
                 {
-                    ICompatibilityManager.VersionCompareResult.ClientTooOld => DisconnectMessages.VersionClientTooOld,
-                    ICompatibilityManager.VersionCompareResult.ServerTooOld => DisconnectMessages.VersionServerTooOld,
-                    ICompatibilityManager.VersionCompareResult.Unknown => DisconnectMessages.VersionUnsupported,
+                    ICompatibilityManager.VersionCompareResult.ClientTooOld => language == Language.SChinese ? DisconnectMessages.CnVersionClientTooOld : DisconnectMessages.VersionClientTooOld,
+                    ICompatibilityManager.VersionCompareResult.ServerTooOld => language == Language.SChinese ? DisconnectMessages.CnVersionServerTooOld:DisconnectMessages.VersionServerTooOld,
+                    ICompatibilityManager.VersionCompareResult.Unknown => language == Language.SChinese ? DisconnectMessages.CnVersionUnsupported : DisconnectMessages.VersionUnsupported,
                     _ => throw new ArgumentOutOfRangeException(),
                 };
 
-                await connection.CustomDisconnectAsync(DisconnectReason.Custom, message);
+                await connection.CustomDisconnectAsync(DisconnectReason.Custom, string.Format(message, CompatibilityManager.SupportedVersionNames[clientVersion], serverVer));
                 return;
             }
 

@@ -13,6 +13,20 @@ using VersionCompareResult = ICompatibilityManager.VersionCompareResult;
 
 internal class CompatibilityManager : ICompatibilityManager
 {
+    public static readonly Dictionary<GameVersion, string> SupportedVersionNames = new();
+
+    static CompatibilityManager()
+    {
+        SupportedVersionNames.Add(DefaultSupportedVersions[0].GameVersions[0], "2022.12.8");
+        SupportedVersionNames.Add(DefaultSupportedVersions[1].GameVersions[0], "2022.12.14");
+        SupportedVersionNames.Add(DefaultSupportedVersions[2].GameVersions[0], "2023.2.28");
+        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[0], "2023.3.28s");
+        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[1], "2023.3.28a");
+        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[2], "2023.6.13");
+        SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[0], "2023.7.11");
+        SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[1], "2222.0.0(mod)");
+    }
+
     private static readonly CompatibilityGroup[] DefaultSupportedVersions =
     {
         new[]
@@ -100,12 +114,14 @@ internal class CompatibilityManager : ICompatibilityManager
         return VersionCompareResult.Unknown;
     }
 
-    public GameJoinError CanJoinGame(GameVersion hostVersion, GameVersion clientVersion)
+    public bool CanJoinGame(GameVersion hostVersion, GameVersion clientVersion, out GameJoinError joinError)
     {
+        joinError = GameJoinError.None;
+
         if (hostVersion == clientVersion)
         {
             // Optimize a common case: a player on version X should always be able to join version X
-            return GameJoinError.None;
+            return true;
         }
 
         var hostCompatGroup = this.TryGetCompatibilityGroup(hostVersion);
@@ -113,17 +129,19 @@ internal class CompatibilityManager : ICompatibilityManager
 
         if (hostCompatGroup == null || playerCompatGroup == null)
         {
-            return GameJoinError.InvalidClient;
+            joinError = GameJoinError.InvalidClient;
+            return false;
         }
 
-        if (hostCompatGroup != playerCompatGroup)
+        if (hostCompatGroup == playerCompatGroup)
         {
-            return clientVersion < hostVersion
-                ? GameJoinError.ClientOutdated
-                : GameJoinError.ClientTooNew;
+            return true;
         }
 
-        return GameJoinError.None;
+        joinError = clientVersion < hostVersion
+            ? GameJoinError.ClientOutdated
+            : GameJoinError.ClientTooNew;
+        return false;
     }
 
     void ICompatibilityManager.AddCompatibilityGroup(CompatibilityGroup compatibilityGroup)
