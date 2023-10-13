@@ -24,6 +24,8 @@
 
         public const string VersionUnsupported = "Your client version is unsupported, please update your Game and/or Impostor server. \nClient:{0}  Server:{1}";
 
+        public const string UdpMatchmakingUnsupported = "UDP matchmaking is not supported anymore, migrate to a HTTP connection.";
+
         public const string CnError = "There was an internal server error. " +
                                     "Check the server console for more information. " +
                                     "Please report the issue on the Impostor GitHub if it keeps happening.";
@@ -43,5 +45,6 @@
         public const string CnVersionServerTooOld = "服务器版本过低, 请更新您的服务器版本\n客户端版本:{0}  服务器支持版本{1}";
 
         public const string CnVersionUnsupported = "服务器不支持该版本,请联系腐竹\n客户端版本:{0}  服务器支持版本{1}";
+      
     }
 }

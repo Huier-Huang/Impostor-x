@@ -17,6 +17,6 @@ namespace Impostor.Api.Innersloth
         SpanishEU,
         SChinese,
         TChinese,
-        Irish
+        Irish,
     }
 }
