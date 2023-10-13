@@ -98,6 +98,8 @@ namespace Impostor.Server.Net
                     }
 
                     var result = await game.AddClientAsync(this);
+                    var hostVer = CompatibilityManager.SupportedVersionNames[game.Host!.Client.GameVersion];
+                    var clientVer = CompatibilityManager.SupportedVersionNames[this.GameVersion];
 
                     switch (result.Error)
                     {
@@ -122,10 +124,10 @@ namespace Impostor.Server.Net
                             await DisconnectAsync(DisconnectReason.Custom, DisconnectMessages.Destroyed);
                             break;
                         case GameJoinError.ClientOutdated:
-                            await DisconnectAsync(DisconnectReason.Custom, DisconnectMessages.ClientOutdated);
+                            await DisconnectAsync(DisconnectReason.Custom, string.Format(this.Language == Language.SChinese ? DisconnectMessages.CnClientOutdated : DisconnectMessages.ClientOutdated, hostVer, clientVer));
                             break;
                         case GameJoinError.ClientTooNew:
-                            await DisconnectAsync(DisconnectReason.Custom, DisconnectMessages.ClientTooNew);
+                            await DisconnectAsync(DisconnectReason.Custom, string.Format(this.Language == Language.SChinese ? DisconnectMessages.CnClientTooNew : DisconnectMessages.ClientTooNew, hostVer, clientVer));
                             break;
                         case GameJoinError.Custom:
                             await DisconnectAsync(DisconnectReason.Custom, result.Message);

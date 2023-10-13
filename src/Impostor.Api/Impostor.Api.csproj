@@ -32,4 +32,9 @@
     <PackageReference Include="Impostor.Hazel.Abstractions" Version="1.0.0" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <Folder Include="Config\DisconnectMessage\" />
+  </ItemGroup>
+
 </Project>
