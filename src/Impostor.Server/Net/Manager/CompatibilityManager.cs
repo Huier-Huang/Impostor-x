@@ -15,18 +15,6 @@ internal class CompatibilityManager : ICompatibilityManager
 {
     public static readonly Dictionary<GameVersion, string> SupportedVersionNames = new();
 
-    static CompatibilityManager()
-    {
-        SupportedVersionNames.Add(DefaultSupportedVersions[0].GameVersions[0], "2022.12.8");
-        SupportedVersionNames.Add(DefaultSupportedVersions[1].GameVersions[0], "2022.12.14");
-        SupportedVersionNames.Add(DefaultSupportedVersions[2].GameVersions[0], "2023.2.28");
-        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[0], "2023.3.28s");
-        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[1], "2023.3.28a");
-        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[2], "2023.6.13");
-        SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[0], "2023.7.11");
-        SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[1], "2222.0.0(mod)");
-    }
-
     private static readonly CompatibilityGroup[] DefaultSupportedVersions =
     {
         new[]
@@ -63,6 +51,18 @@ internal class CompatibilityManager : ICompatibilityManager
     private readonly ILogger<CompatibilityManager> _logger;
     private GameVersion _lowestVersionSupported = new(int.MaxValue);
     private GameVersion _highestVersionSupported = new(0);
+
+    static CompatibilityManager()
+    {
+        SupportedVersionNames.Add(DefaultSupportedVersions[0].GameVersions[0], "2022.12.8");
+        SupportedVersionNames.Add(DefaultSupportedVersions[1].GameVersions[0], "2022.12.14");
+        SupportedVersionNames.Add(DefaultSupportedVersions[2].GameVersions[0], "2023.2.28");
+        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[0], "2023.3.28s");
+        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[1], "2023.3.28a");
+        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[2], "2023.6.13");
+        SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[0], "2023.7.11");
+        SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[1], "2222.0.0(mod)");
+    }
 
     public CompatibilityManager(ILogger<CompatibilityManager> logger) : this(logger, DefaultSupportedVersions)
     {

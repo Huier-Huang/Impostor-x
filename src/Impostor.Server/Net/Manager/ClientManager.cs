@@ -72,7 +72,7 @@ namespace Impostor.Server.Net.Manager
                 var message = versionCompare switch
                 {
                     ICompatibilityManager.VersionCompareResult.ClientTooOld => language == Language.SChinese ? DisconnectMessages.CnVersionClientTooOld : DisconnectMessages.VersionClientTooOld,
-                    ICompatibilityManager.VersionCompareResult.ServerTooOld => language == Language.SChinese ? DisconnectMessages.CnVersionServerTooOld:DisconnectMessages.VersionServerTooOld,
+                    ICompatibilityManager.VersionCompareResult.ServerTooOld => language == Language.SChinese ? DisconnectMessages.CnVersionServerTooOld : DisconnectMessages.VersionServerTooOld,
                     ICompatibilityManager.VersionCompareResult.Unknown => language == Language.SChinese ? DisconnectMessages.CnVersionUnsupported : DisconnectMessages.VersionUnsupported,
                     _ => throw new ArgumentOutOfRangeException(),
                 };

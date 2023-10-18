@@ -3,8 +3,14 @@ using Xunit;
 
 namespace Impostor.Tests
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class GameCodeTests
     {
+        /// <summary>
+        /// 
+        /// </summary>
         [Fact]
         public void CodeV1()
         {
@@ -15,6 +21,9 @@ namespace Impostor.Tests
             Assert.Equal(codeInt, GameCodeParser.GameNameToInt(code));
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         [Fact]
         public void CodeV2()
         {

@@ -110,7 +110,7 @@ namespace Impostor.Server.Net.Manager
                 }
             }
         }
-        
+
         public async ValueTask RemoveAsync(GameCode gameCode)
         {
             if (_games.TryGetValue(gameCode, out var game) && game.PlayerCount > 0)

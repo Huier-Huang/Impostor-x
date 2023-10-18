@@ -3,8 +3,19 @@ using Xunit;
 
 namespace Impostor.Tests;
 
+/// <summary>
+/// 
+/// </summary>
 public sealed class GameVersionTests
 {
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="value"></param>
+    /// <param name="year"></param>
+    /// <param name="month"></param>
+    /// <param name="day"></param>
+    /// <param name="revision"></param>
     [Theory]
     [InlineData(50588150, 2023, 7, 11)]
     [InlineData(50588175, 2023, 7, 11, 25)]

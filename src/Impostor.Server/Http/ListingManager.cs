@@ -61,7 +61,7 @@ public sealed class ListingManager
 
             if (!_compatibilityConfig.AllowVersionMixing &&
                 game.Host != null &&
-                _compatibilityManager.CanJoinGame(game.Host.Client.GameVersion, gameVersion) != GameJoinError.None)
+               !_compatibilityManager.CanJoinGame(game.Host.Client.GameVersion, gameVersion, out var _))
             {
                 continue;
             }

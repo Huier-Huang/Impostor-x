@@ -8,17 +8,27 @@ using Xunit;
 
 namespace Impostor.Tests.Events
 {
+    /// <summary>
+    /// 
+    /// </summary>
     public class EventManagerTests
     {
+        /// <summary>
+        /// 
+        /// </summary>
         public static readonly IEnumerable<object[]> TestModes = new[]
         {
             new object[] { TestMode.Service },
             new object[] { TestMode.Temporary },
         };
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="mode"></param>
         [Theory]
         [MemberData(nameof(TestModes))]
-        public async ValueTask CallEvent(TestMode mode)
+        public async ValueTask CallEventAsync(TestMode mode)
         {
             var listener = new EventListener();
             var eventManager = CreatEventManager(mode, listener);
@@ -28,9 +38,13 @@ namespace Impostor.Tests.Events
             Assert.Equal(1, listener.Value);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="mode"></param>
         [Theory]
         [MemberData(nameof(TestModes))]
-        public async Task CallPriority(TestMode mode)
+        public async Task CallPriorityAsync(TestMode mode)
         {
             var listener = new PriorityEventListener();
             var eventManager = CreatEventManager(mode, listener);
@@ -48,9 +62,13 @@ namespace Impostor.Tests.Events
             }, listener.Priorities);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="mode"></param>
         [Theory]
         [MemberData(nameof(TestModes))]
-        public async ValueTask CancelEvent(TestMode mode)
+        public async ValueTask CancelEventAsync(TestMode mode)
         {
             var listener = new EventListener();
             var eventManager = CreatEventManager(
@@ -64,9 +82,13 @@ namespace Impostor.Tests.Events
             Assert.Equal(0, listener.Value);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="mode"></param>
         [Theory]
         [MemberData(nameof(TestModes))]
-        public async Task CancelPriority(TestMode mode)
+        public async Task CancelPriorityAsync(TestMode mode)
         {
             var listener = new PriorityEventListener();
             var eventManager = CreatEventManager(
@@ -111,26 +133,54 @@ namespace Impostor.Tests.Events
             return eventManager;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public enum TestMode
         {
+            /// <summary>
+            /// 
+            /// </summary>
             Service,
+            /// <summary>
+            /// 
+            /// </summary>
             Temporary,
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public interface ISetValueEvent : IEventCancelable
         {
+            /// <summary>
+            /// 
+            /// </summary>
             int Value { get; }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
         public class SetValueEvent : ISetValueEvent
         {
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="value"></param>
             public SetValueEvent(int value)
             {
                 Value = value;
             }
 
+            /// <summary>
+            /// 
+            /// </summary>
             public int Value { get; }
 
+            /// <summary>
+            /// 
+            /// </summary>
             public bool IsCancelled { get; set; }
         }
 
