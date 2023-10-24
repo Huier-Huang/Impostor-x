@@ -37,6 +37,8 @@ namespace Impostor.Server.Net.State
 
         public bool IsHost => Game?.Host == this;
 
+        public bool IsMod => false;
+
         public string? Scene { get; internal set; }
 
         public RuntimePlatform? Platform { get; internal set; }

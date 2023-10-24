@@ -177,7 +177,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     return await HandleSetColor(sender, color);
                 }
 
-                case RpcCalls.SetHat:
+                case RpcCalls.SetHatString:
                 {
                     if (!await ValidateOwnership(call, sender))
                     {
@@ -188,7 +188,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     return true;
                 }
 
-                case RpcCalls.SetSkin:
+                case RpcCalls.SetSkinString:
                 {
                     if (!await ValidateOwnership(call, sender))
                     {
@@ -199,7 +199,18 @@ namespace Impostor.Server.Net.Inner.Objects
                     return true;
                 }
 
-                case RpcCalls.SetVisor:
+                case RpcCalls.Pet:
+                {
+                    if (!await ValidateOwnership(call, sender))
+                    {
+                        return false;
+                    }
+
+                    Rpc41SetPet.Deserialize(reader, out var pet);
+                    return await HandleSetPet(sender, pet);
+                }
+
+                case RpcCalls.SetVisorString:
                 {
                     if (!await ValidateOwnership(call, sender))
                     {
@@ -210,7 +221,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     return true;
                 }
 
-                case RpcCalls.SetNamePlate:
+                case RpcCalls.SetNamePlateString:
                 {
                     if (!await ValidateOwnership(call, sender))
                     {
@@ -297,17 +308,6 @@ namespace Impostor.Server.Net.Inner.Objects
 
                     Rpc16SendChatNote.Deserialize(reader, out var playerId, out var chatNoteType);
                     break;
-                }
-
-                case RpcCalls.SetPet:
-                {
-                    if (!await ValidateOwnership(call, sender))
-                    {
-                        return false;
-                    }
-
-                    Rpc41SetPet.Deserialize(reader, out var pet);
-                    return await HandleSetPet(sender, pet);
                 }
 
                 case RpcCalls.SetStartCounter:
@@ -620,7 +620,7 @@ namespace Impostor.Server.Net.Inner.Objects
 
         private async ValueTask<bool> HandleSetHat(ClientPlayer sender, string hat)
         {
-            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetHat, "Client tried to change hat while not in lobby"))
+            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetHatString, "Client tried to change hat while not in lobby"))
             {
                 return false;
             }
@@ -632,7 +632,7 @@ namespace Impostor.Server.Net.Inner.Objects
 
         private async ValueTask<bool> HandleSetSkin(ClientPlayer sender, string skin)
         {
-            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetSkin, "Client tried to change skin while not in lobby"))
+            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetSkinString, "Client tried to change skin while not in lobby"))
             {
                 return false;
             }
@@ -713,7 +713,7 @@ namespace Impostor.Server.Net.Inner.Objects
 
         private async ValueTask<bool> HandleSetPet(ClientPlayer sender, string pet)
         {
-            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetPet, "Client tried to change pet while not in lobby"))
+            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetPetString, "Client tried to change pet while not in lobby"))
             {
                 return false;
             }

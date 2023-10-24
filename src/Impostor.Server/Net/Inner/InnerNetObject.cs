@@ -42,15 +42,7 @@ namespace Impostor.Server.Net.Inner
 
         public virtual async ValueTask<bool> HandleRpcAsync(ClientPlayer sender, ClientPlayer? target, RpcCalls call, IMessageReader reader)
         {
-            if ((int)call != 101)
-            {
-                return await HandleCustomRpcAsync(sender, target, call, reader) ?? await UnregisteredCall(call, sender);
-            }
-
-            await sender.Game.Host!.Character!.SendChatAsync($"{sender.Client.Name} 疑似使用AUM 已被踢出");
-            await sender.Client.DisconnectAsync(DisconnectReason.Custom, "疑似使用AUM");
-
-            return await UnregisteredCall(call, sender);
+            return await HandleCustomRpcAsync(sender, target, call, reader) ?? await UnregisteredCall(call, sender);
         }
 
         protected async ValueTask<bool?> HandleCustomRpcAsync(ClientPlayer sender, ClientPlayer? target, RpcCalls call, IMessageReader reader)

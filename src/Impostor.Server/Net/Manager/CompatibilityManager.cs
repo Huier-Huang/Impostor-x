@@ -44,6 +44,11 @@ internal class CompatibilityManager : ICompatibilityManager
             new GameVersion(2023, 5, 20), // 2023.7.11
             new GameVersion(2222, 0, 0), // 2023.7.11 for host-only mods
         },
+
+        new[]
+        {
+            new GameVersion(2023, 10, 1), // 2023.10.24
+        },
     };
 
     private readonly List<CompatibilityGroup> _compatibilityGroups = new();
@@ -62,6 +67,7 @@ internal class CompatibilityManager : ICompatibilityManager
         SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[2], "2023.6.13");
         SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[0], "2023.7.11");
         SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[1], "2222.0.0(mod)");
+        SupportedVersionNames.Add(DefaultSupportedVersions[5].GameVersions[0], "2023.10.24");
     }
 
     public CompatibilityManager(ILogger<CompatibilityManager> logger) : this(logger, DefaultSupportedVersions)

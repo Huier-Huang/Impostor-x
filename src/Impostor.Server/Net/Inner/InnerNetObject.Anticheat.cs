@@ -10,15 +10,12 @@ namespace Impostor.Server.Net.Inner
     {
         protected async ValueTask<bool> ValidateOwnership(CheatContext context, IClientPlayer sender)
         {
-            if (!sender.IsOwner(this))
+            if (sender.IsOwner(this))
             {
-                if (await sender.Client.ReportCheatAsync(context, $"Failed ownership check on {GetType().Name}"))
-                {
-                    return false;
-                }
+                return true;
             }
 
-            return true;
+            return !await sender.Client.ReportCheatAsync(context, $"Failed ownership check on {GetType().Name}");
         }
 
         protected async ValueTask<bool> ValidateHost(CheatContext context, IClientPlayer sender)

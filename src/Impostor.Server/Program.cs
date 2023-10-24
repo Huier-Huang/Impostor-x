@@ -134,6 +134,8 @@ namespace Impostor.Server
                     }
 
                     services.AddSingleton<GameManager>();
+                    services.AddSingleton<AntiManager>();
+                    services.AddSingleton<ModManager>();
                     services.AddSingleton<IGameManager>(p => p.GetRequiredService<GameManager>());
                     services.AddSingleton<ListingManager>();
 
