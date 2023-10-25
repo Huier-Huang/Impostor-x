@@ -199,7 +199,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     return true;
                 }
 
-                case RpcCalls.Pet:
+                case RpcCalls.SetPetString:
                 {
                     if (!await ValidateOwnership(call, sender))
                     {
