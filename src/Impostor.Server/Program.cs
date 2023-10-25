@@ -79,8 +79,17 @@ namespace Impostor.Server
             var configuration = CreateConfiguration(args);
             var pluginConfig = configuration.GetSection("PluginLoader")
                 .Get<PluginConfig>() ?? new PluginConfig();
+            var serverConfig = configuration.GetSection(ServerConfig.Section).Get<ServerConfig>();
             var httpConfig = configuration.GetSection(HttpServerConfig.Section)
-                .Get<HttpServerConfig>() ?? new HttpServerConfig();
+                .Get<HttpServerConfig>();
+            if (httpConfig == null && serverConfig != null)
+            {
+                httpConfig = new HttpServerConfig
+                {
+                    ListenPort = serverConfig.ListenPort,
+                    ListenIp = serverConfig.ListenIp,
+                };
+            }
 
             var hostBuilder = Host.CreateDefaultBuilder(args)
                 .UseContentRoot(Directory.GetCurrentDirectory())
