@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using Impostor.Api;
@@ -46,18 +47,38 @@ namespace Impostor.Server.Net.Inner.Objects.Components
 
         public Vector2 Velocity { get; private set; }
 
+        public Vector2 LastPosSent { get; private set; }
+
+        public Queue<Vector2> SendQueue { get; private set; }
+
+        public Queue<Vector2> IncomingPosQueue { get; private set; }
+
         public override ValueTask<bool> SerializeAsync(IMessageWriter writer, bool initialState)
         {
             if (initialState)
             {
                 writer.Write(_lastSequenceId);
                 writer.Write(Position);
-                writer.Write(Velocity);
                 return new ValueTask<bool>(true);
             }
 
-            // TODO: DirtyBits == 0 return false.
+            if (SendQueue.Count == 0)
+            {
+                return new ValueTask<bool>(false);
+            }
+
+            var num = (ushort)SendQueue.Count;
             _lastSequenceId++;
+            writer.Write(_lastSequenceId);
+            writer.WritePacked(num);
+            foreach (var vec in SendQueue)
+            {
+                writer.Write(vec);
+                LastPosSent = vec;
+            }
+
+            SendQueue.Clear();
+            _lastSequenceId += (ushort)(num - 1);
 
             writer.Write(_lastSequenceId);
             writer.Write(Position);
@@ -67,28 +88,34 @@ namespace Impostor.Server.Net.Inner.Objects.Components
 
         public override async ValueTask DeserializeAsync(IClientPlayer sender, IClientPlayer? target, IMessageReader reader, bool initialState)
         {
-            var sequenceId = reader.ReadUInt16();
-
             if (initialState)
             {
-                _lastSequenceId = sequenceId;
-                await SetPositionAsync(sender, reader.ReadVector2(), reader.ReadVector2());
+                IncomingPosQueue.Clear();
+                _lastSequenceId = reader.ReadUInt16();
+                await SetPositionAsync(sender, reader.ReadVector2());
+                return;
             }
-            else
+
+            var num = reader.ReadUInt16();
+            var max = reader.ReadPackedInt32();
+
+            var position = IncomingPosQueue.Count > 0 ? IncomingPosQueue.Last<Vector2>() : Position;
+
+            for (var index = 0; index < max; index++)
             {
-                if (!await ValidateOwnership(CheatContext.Deserialize, sender) || !await ValidateBroadcast(CheatContext.Deserialize, sender, target))
+                var newSid = (ushort)((int)num + index);
+                var varVector = reader.ReadVector2();
+                if (!SidGreaterThan(newSid, _lastSequenceId))
                 {
-                    return;
+                    continue;
                 }
 
-                if (!SidGreaterThan(sequenceId, _lastSequenceId))
-                {
-                    return;
-                }
-
-                _lastSequenceId = sequenceId;
-                await SetPositionAsync(sender, reader.ReadVector2(), reader.ReadVector2());
+                _lastSequenceId = newSid;
+                IncomingPosQueue.Enqueue(varVector);
+                position = varVector;
             }
+
+            await SetPositionAsync(sender, position);
         }
 
         public override async ValueTask<bool> HandleRpcAsync(ClientPlayer sender, ClientPlayer? target, RpcCalls call, IMessageReader reader)
@@ -158,10 +185,10 @@ namespace Impostor.Server.Net.Inner.Objects.Components
             return await base.HandleRpcAsync(sender, target, call, reader);
         }
 
-        internal async ValueTask SetPositionAsync(IClientPlayer sender, Vector2 position, Vector2 velocity)
+        internal async ValueTask SetPositionAsync(IClientPlayer sender, Vector2 position)
         {
             Position = position;
-            Velocity = velocity;
+            IncomingPosQueue.Enqueue(position);
 
             var playerMovementEvent = _pool.Get();
             playerMovementEvent.Reset(Game, sender, _playerControl);
@@ -178,7 +205,7 @@ namespace Impostor.Server.Net.Inner.Objects.Components
         {
             var num = (ushort)(prevSid + (uint)short.MaxValue);
 
-            return (int)prevSid < (int)num
+            return prevSid < num
                 ? newSid > prevSid && newSid <= num
                 : newSid > prevSid || newSid <= num;
         }
@@ -197,7 +224,7 @@ namespace Impostor.Server.Net.Inner.Objects.Components
             }
 
             _lastSequenceId = minSid;
-            return SetPositionAsync(sender, position, Velocity);
+            return SetPositionAsync(sender, position);
         }
     }
 }

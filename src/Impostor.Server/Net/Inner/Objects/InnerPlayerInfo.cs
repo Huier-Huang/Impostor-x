@@ -21,6 +21,10 @@ namespace Impostor.Server.Net.Inner.Objects
 
         public string PlayerName { get; internal set; } = string.Empty;
 
+        public string Puid { get; internal set; } = string.Empty;
+
+        public string FriendCode { get; internal set; } = string.Empty;
+
         public Dictionary<PlayerOutfitType, PlayerOutfit> Outfits { get; } = new()
         {
             [PlayerOutfitType.Default] = new PlayerOutfit(),
@@ -106,6 +110,9 @@ namespace Impostor.Server.Net.Inner.Objects
             {
                 Tasks[i].Deserialize(reader);
             }
+
+            FriendCode = reader.ReadString();
+            Puid = reader.ReadString();
         }
     }
 }
