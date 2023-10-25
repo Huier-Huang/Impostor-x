@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
-using System.Numerics;
 using System.Threading.Tasks;
 using Impostor.Api.Config;
 using Impostor.Api.Events.Managers;
@@ -33,7 +32,7 @@ namespace Impostor.Server.Net.State
         private readonly ICompatibilityManager _compatibilityManager;
         private readonly CompatibilityConfig _compatibilityConfig;
         private readonly TimeoutConfig _timeoutConfig;
-        private readonly AntiManager  _antiManager;
+        private readonly AntiManager _antiManager;
 
         public Game(
             ILogger<Game> logger,
@@ -98,7 +97,7 @@ namespace Impostor.Server.Net.State
 
         internal GameNet GameNet { get; }
 
-        public bool TryGetPlayer(int id, [MaybeNullWhen(false)] out ClientPlayer player)
+        private bool TryGetPlayer(int id, [MaybeNullWhen(false)] out ClientPlayer player)
         {
             if (_players.TryGetValue(id, out var result))
             {
@@ -147,7 +146,7 @@ namespace Impostor.Server.Net.State
             return Players
                 .Where(filter)
                 .Select(p => p.Client.Connection)
-                .Where(c => c != null && c.IsConnected)!;
+                .Where(c => c is { IsConnected: true })!;
         }
     }
 }

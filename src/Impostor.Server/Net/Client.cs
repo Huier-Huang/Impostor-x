@@ -7,6 +7,7 @@ using Impostor.Api.Games;
 using Impostor.Api.Innersloth;
 using Impostor.Api.Net;
 using Impostor.Api.Net.Custom;
+using Impostor.Api.Net.Manager;
 using Impostor.Api.Net.Messages;
 using Impostor.Api.Net.Messages.C2S;
 using Impostor.Api.Net.Messages.S2C;
@@ -24,8 +25,21 @@ namespace Impostor.Server.Net
         private readonly ClientManager _clientManager;
         private readonly GameManager _gameManager;
         private readonly ICustomMessageManager<ICustomRootMessage> _customMessageManager;
+        private readonly ICompatibilityManager _compatibilityManager;
 
-        public Client(ILogger<Client> logger, IOptions<AntiCheatConfig> antiCheatOptions, ClientManager clientManager, GameManager gameManager, ICustomMessageManager<ICustomRootMessage> customMessageManager, string name, GameVersion gameVersion, Language language, QuickChatModes chatMode, PlatformSpecificData platformSpecificData, IHazelConnection connection)
+        public Client(
+            ILogger<Client> logger,
+            IOptions<AntiCheatConfig> antiCheatOptions,
+            ClientManager clientManager,
+            GameManager gameManager,
+            ICustomMessageManager<ICustomRootMessage> customMessageManager,
+            string name,
+            GameVersion gameVersion,
+            Language language,
+            QuickChatModes chatMode,
+            PlatformSpecificData platformSpecificData,
+            IHazelConnection connection,
+            ICompatibilityManager compatibilityManager)
             : base(name, gameVersion, language, chatMode, platformSpecificData, connection)
         {
             _logger = logger;
@@ -33,6 +47,7 @@ namespace Impostor.Server.Net
             _clientManager = clientManager;
             _gameManager = gameManager;
             _customMessageManager = customMessageManager;
+            _compatibilityManager = compatibilityManager;
         }
 
         public override async ValueTask<bool> ReportCheatAsync(CheatContext context, string message)
@@ -98,8 +113,8 @@ namespace Impostor.Server.Net
                     }
 
                     var result = await game.AddClientAsync(this);
-                    var hostVer = CompatibilityManager.SupportedVersionNames[game.Host!.Client.GameVersion];
-                    var clientVer = CompatibilityManager.SupportedVersionNames[this.GameVersion];
+                    _compatibilityManager.TryGetVersionName(game.Host!.Client.GameVersion, out var hostVer);
+                    _compatibilityManager.TryGetVersionName(this.GameVersion, out var clientVer);
 
                     switch (result.Error)
                     {

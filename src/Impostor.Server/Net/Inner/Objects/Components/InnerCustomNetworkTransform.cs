@@ -2,7 +2,6 @@
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
-using Impostor.Api;
 using Impostor.Api.Events.Managers;
 using Impostor.Api.Net;
 using Impostor.Api.Net.Custom;
@@ -34,6 +33,9 @@ namespace Impostor.Server.Net.Inner.Objects.Components
             _playerControl = playerControl;
             _eventManager = eventManager;
             _pool = pool;
+
+            SendQueue = new Queue<Vector2>();
+            IncomingPosQueue = new Queue<Vector2>();
         }
 
         private enum AirshipSpawnState : byte
@@ -99,11 +101,11 @@ namespace Impostor.Server.Net.Inner.Objects.Components
             var num = reader.ReadUInt16();
             var max = reader.ReadPackedInt32();
 
-            var position = IncomingPosQueue.Count > 0 ? IncomingPosQueue.Last<Vector2>() : Position;
+            var position = IncomingPosQueue.Count > 0 ? IncomingPosQueue.Last() : Position;
 
             for (var index = 0; index < max; index++)
             {
-                var newSid = (ushort)((int)num + index);
+                var newSid = (ushort)(num + index);
                 var varVector = reader.ReadVector2();
                 if (!SidGreaterThan(newSid, _lastSequenceId))
                 {

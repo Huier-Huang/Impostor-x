@@ -33,6 +33,8 @@ namespace Impostor.Api.Net.Manager
         /// </returns>
         public VersionCompareResult CanConnectToServer(GameVersion clientVersion);
 
+        public bool TryGetVersionName(GameVersion version, out string name);
+
         /// <summary>Check if a player can join an existing game.</summary>
         /// <param name="hostVersion">The client version of the host.</param>
         /// <param name="clientVersion">The client version of the player that is joining.</param>

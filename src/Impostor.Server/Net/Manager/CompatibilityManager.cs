@@ -69,6 +69,7 @@ internal class CompatibilityManager : ICompatibilityManager
         SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[1], "2222.0.0(mod)");
         SupportedVersionNames.Add(DefaultSupportedVersions[5].GameVersions[0], "2023.10.24");
     }
+    
 
     public CompatibilityManager(ILogger<CompatibilityManager> logger) : this(logger, DefaultSupportedVersions)
     {
@@ -85,6 +86,18 @@ internal class CompatibilityManager : ICompatibilityManager
     }
 
     public IEnumerable<CompatibilityGroup> CompatibilityGroups => _compatibilityGroups;
+
+    public bool TryGetVersionName(GameVersion version, out string name)
+    {
+        name = string.Empty;
+        foreach (var versionName in from versionName in SupportedVersionNames where versionName.Key.Year == version.Year where versionName.Key.Month == version.Month where versionName.Key.Day == version.Day select versionName)
+        {
+            name = versionName.Value;
+            return true;
+        }
+
+        return false;
+    }
 
     private CompatibilityGroup? TryGetCompatibilityGroup(GameVersion clientVersion)
     {
