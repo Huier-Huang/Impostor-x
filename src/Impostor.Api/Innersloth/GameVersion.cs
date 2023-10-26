@@ -85,6 +85,16 @@ namespace Impostor.Api.Innersloth
             return Value.CompareTo(other.Value);
         }
 
+        public int Compare(GameVersion version)
+        {
+            if (version.Year == Year && version.Month == Month && version.Day == Day)
+            {
+                return 0;
+            }
+
+            return CompareTo(version);
+        }
+
         public bool Equals(GameVersion other)
         {
             return Value == other.Value;

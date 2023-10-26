@@ -3,6 +3,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using Impostor.Api.Events.Managers;
+using Impostor.Api.Innersloth;
 using Impostor.Api.Net;
 using Impostor.Api.Net.Custom;
 using Impostor.Api.Net.Inner;
@@ -55,6 +56,24 @@ namespace Impostor.Server.Net.Inner.Objects.Components
 
         public Queue<Vector2> IncomingPosQueue { get; private set; }
 
+        public ValueTask<bool> SerializeOldAsync(IMessageWriter writer, bool initialState)
+        {
+            if (initialState)
+            {
+                writer.Write(_lastSequenceId);
+                writer.Write(Position);
+                writer.Write(Velocity);
+                return new ValueTask<bool>(true);
+            }
+
+            _lastSequenceId++;
+
+            writer.Write(_lastSequenceId);
+            writer.Write(Position);
+            writer.Write(Velocity);
+            return new ValueTask<bool>(true);
+        }
+
         public override ValueTask<bool> SerializeAsync(IMessageWriter writer, bool initialState)
         {
             if (initialState)
@@ -88,8 +107,35 @@ namespace Impostor.Server.Net.Inner.Objects.Components
             return new ValueTask<bool>(true);
         }
 
+        private async ValueTask DeserializeOldAsync(IClientPlayer sender, IClientPlayer? target, IMessageReader reader, bool initialState)
+        {
+            var sequenceId = reader.ReadUInt16();
+
+            if (initialState)
+            {
+                _lastSequenceId = sequenceId;
+                await SetPositionAsync(sender, reader.ReadVector2(), reader.ReadVector2());
+            }
+            else
+            {
+                if (!SidGreaterThan(sequenceId, _lastSequenceId))
+                {
+                    return;
+                }
+
+                _lastSequenceId = sequenceId;
+                await SetPositionAsync(sender, reader.ReadVector2(), reader.ReadVector2());
+            }
+        }
+
         public override async ValueTask DeserializeAsync(IClientPlayer sender, IClientPlayer? target, IMessageReader reader, bool initialState)
         {
+            if (!sender.Client.GameVersion.Equals(new GameVersion(2023, 10, 1)))
+            {
+                await DeserializeOldAsync(sender, target, reader, initialState);
+                return;
+            }
+
             if (initialState)
             {
                 IncomingPosQueue.Clear();
@@ -191,6 +237,17 @@ namespace Impostor.Server.Net.Inner.Objects.Components
         {
             Position = position;
             IncomingPosQueue.Enqueue(position);
+
+            var playerMovementEvent = _pool.Get();
+            playerMovementEvent.Reset(Game, sender, _playerControl);
+            await _eventManager.CallAsync(playerMovementEvent);
+            _pool.Return(playerMovementEvent);
+        }
+
+        internal async ValueTask SetPositionAsync(IClientPlayer sender, Vector2 position, Vector2 velocity)
+        {
+            Position = position;
+            Velocity = velocity;
 
             var playerMovementEvent = _pool.Get();
             playerMovementEvent.Reset(Game, sender, _playerControl);

@@ -69,7 +69,7 @@ internal class CompatibilityManager : ICompatibilityManager
         SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[1], "2222.0.0(mod)");
         SupportedVersionNames.Add(DefaultSupportedVersions[5].GameVersions[0], "2023.10.24");
     }
-    
+
 
     public CompatibilityManager(ILogger<CompatibilityManager> logger) : this(logger, DefaultSupportedVersions)
     {
