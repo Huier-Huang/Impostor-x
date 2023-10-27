@@ -52,7 +52,7 @@ namespace Impostor.Server.Net
 
         public override async ValueTask<bool> ReportCheatAsync(CheatContext context, string message)
         {
-            if (!_antiCheatConfig.Enabled)
+            if (!_antiCheatConfig.Enabled || this.Player!.IsMod)
             {
                 return false;
             }

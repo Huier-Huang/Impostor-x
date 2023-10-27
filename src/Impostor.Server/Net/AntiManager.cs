@@ -15,12 +15,19 @@ public class AntiManager
     {
         log = null;
         reason = KickReason.None;
-        if ((int)rpcCalls == 101 && !(ALLAUM.ContainsKey(sender.Game.Code) && ALLAUM.ContainsValue(sender)))
+        if (sender.IsMod)
         {
-           ALLAUM.Add(sender.Game.Code, sender);
-           log = $"存在AUM{sender.Game.Code.ToString()} : {sender.Client.Name}";
-           reason = KickReason.AUM;
+            return true;
         }
+
+        if ((int)rpcCalls != 101 || (ALLAUM.ContainsKey(sender.Game.Code) && ALLAUM.ContainsValue(sender)))
+        {
+            return true;
+        }
+
+        ALLAUM.Add(sender.Game.Code, sender);
+        log = $"存在AUM{sender.Game.Code.ToString()} : {sender.Client.Name}";
+        reason = KickReason.AUM;
 
         return true;
     }

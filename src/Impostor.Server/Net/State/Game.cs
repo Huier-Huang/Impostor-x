@@ -33,6 +33,7 @@ namespace Impostor.Server.Net.State
         private readonly CompatibilityConfig _compatibilityConfig;
         private readonly TimeoutConfig _timeoutConfig;
         private readonly AntiManager _antiManager;
+        private readonly ModManager _modManager;
 
         public Game(
             ILogger<Game> logger,
@@ -47,7 +48,8 @@ namespace Impostor.Server.Net.State
             ICompatibilityManager compatibilityManager,
             IOptions<CompatibilityConfig> compatibilityConfig,
             IOptions<TimeoutConfig> timeoutConfig,
-            AntiManager antiManager)
+            AntiManager antiManager,
+            ModManager modManager)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
@@ -66,6 +68,7 @@ namespace Impostor.Server.Net.State
             _eventManager = eventManager;
             _compatibilityManager = compatibilityManager;
             _antiManager = antiManager;
+            _modManager = modManager;
             _compatibilityConfig = compatibilityConfig.Value;
             _timeoutConfig = timeoutConfig.Value;
             Items = new ConcurrentDictionary<object, object>();

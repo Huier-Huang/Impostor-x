@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Impostor.Api.Net;
@@ -30,6 +31,8 @@ namespace Impostor.Server.Net.State
 
         public Game Game { get; }
 
+        public List<Mod> PlayerMod { get; internal set; }
+
         /// <inheritdoc />
         public LimboStates Limbo { get; set; }
 
@@ -37,7 +40,7 @@ namespace Impostor.Server.Net.State
 
         public bool IsHost => Game?.Host == this;
 
-        public bool IsMod => false;
+        public bool IsMod { get; internal set; }
 
         public string? Scene { get; internal set; }
 

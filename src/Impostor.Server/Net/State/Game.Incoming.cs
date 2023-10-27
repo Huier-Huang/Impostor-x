@@ -211,12 +211,18 @@ namespace Impostor.Server.Net.State
                 return GameJoinResult.CreateSuccess(player);
             }
 
+            await _modManager.OnGamePlayerJoining(this, player, out var joinResult);
             var @event = new GamePlayerJoiningEvent(this, player);
             await _eventManager.CallAsync(@event);
 
-            if (@event.JoinResult != null && !@event.JoinResult.Value.IsSuccess)
+            if (@event.JoinResult is { IsSuccess: false })
             {
                 return @event.JoinResult.Value;
+            }
+
+            if (joinResult != null)
+            {
+                return joinResult.Value;
             }
 
             await HandleJoinGameNew(player, isNew);

@@ -25,9 +25,17 @@ namespace Impostor.Server.Net.Manager
         private readonly ICompatibilityManager _compatibilityManager;
         private readonly CompatibilityConfig _compatibilityConfig;
         private readonly IClientFactory _clientFactory;
+        private readonly ModManager _modManager;
         private int _idLast;
 
-        public ClientManager(ILogger<ClientManager> logger, IEventManager eventManager, IClientFactory clientFactory, ICompatibilityManager compatibilityManager, IOptions<CompatibilityConfig> compatibilityConfig)
+        public ClientManager(
+            ILogger<ClientManager> logger,
+            IEventManager eventManager,
+            IClientFactory clientFactory,
+            ICompatibilityManager compatibilityManager,
+            IOptions<CompatibilityConfig> compatibilityConfig,
+            ModManager modManager
+            )
         {
             _logger = logger;
             _eventManager = eventManager;
@@ -35,6 +43,7 @@ namespace Impostor.Server.Net.Manager
             _clients = new ConcurrentDictionary<int, ClientBase>();
             _compatibilityManager = compatibilityManager;
             _compatibilityConfig = compatibilityConfig.Value;
+            _modManager = modManager;
         }
 
         public IEnumerable<ClientBase> Clients => _clients.Values;
@@ -100,6 +109,7 @@ namespace Impostor.Server.Net.Manager
             _logger.LogTrace("Client connected.");
             _clients.TryAdd(id, client);
 
+            await _modManager.OnClientConnected(connection, client);
             await _eventManager.CallAsync(new ClientConnectedEvent(connection, client));
         }
 
