@@ -42,7 +42,7 @@ namespace Impostor.Server.Net.State
         {
             var writer = MessageWriter.Get(type);
 
-            if (targetClientId == null || targetClientId < 0)
+            if (targetClientId is null or < 0)
             {
                 writer.StartMessage(MessageFlags.GameData);
                 Code.Serialize(writer);

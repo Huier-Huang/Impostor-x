@@ -148,5 +148,17 @@ namespace Impostor.Server.Net.State
                 .Select(p => p.Client.Connection)
                 .Where(c => c is { IsConnected: true })!;
         }
+
+        internal bool IsHostAuthoritive()
+        {
+            if (Host == null)
+            {
+                return false;
+            }
+            else
+            {
+                return Host.Client.GameVersion.HasDisableServerAuthorityFlag;
+            }
+        }
     }
 }
