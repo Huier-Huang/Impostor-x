@@ -130,7 +130,7 @@ namespace Impostor.Server.Net.Inner.Objects.Components
 
         public override async ValueTask DeserializeAsync(IClientPlayer sender, IClientPlayer? target, IMessageReader reader, bool initialState)
         {
-            if (!sender.Client.GameVersion.Equals(new GameVersion(2023, 10, 1)))
+            if (sender.Client.GameVersion.Compare(new GameVersion(2023, 10, 1)) < 0)
             {
                 await DeserializeOldAsync(sender, target, reader, initialState);
                 return;
