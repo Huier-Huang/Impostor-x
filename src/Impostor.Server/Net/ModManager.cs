@@ -78,7 +78,6 @@ public class ModManager
         using var writer = _messageWriterProvider.Get(MessageType.Reliable);
         TryGetModAndCount(connection, out var mods, out var count);
         Serialize(writer, "Impostor", _serverEnvironment.Version, count);
-        clientBase.Player!.IsMod = true;
         connection.SendAsync(writer);
 
         return default;
@@ -99,8 +98,14 @@ public class ModManager
 
     internal ValueTask OnGamePlayerJoining(IGame game, IClientPlayer clientPlayer, out GameJoinResult? joinResult)
     {
-        var host = game.Host;
         joinResult = null;
+
+        if (!ModsMap.ContainsKey(clientPlayer.Client.Connection!))
+        {
+            return default;
+        }
+
+        var host = game.Host;
 
         if (host == null)
         {
@@ -137,10 +142,13 @@ public class ModManager
 
     internal ValueTask OnPlayerJoined(IGame game, ClientPlayer clientPlayer)
     {
-        if (ModsMap.ContainsKey(clientPlayer.Client.Connection!))
+        if (!ModsMap.TryGetValue(clientPlayer.Client.Connection!, out var value))
         {
-            clientPlayer.PlayerMod = ModsMap[clientPlayer.Client.Connection!].ToList();
+            return default;
         }
+
+        clientPlayer.PlayerMod = value.ToList();
+        clientPlayer.IsMod = true;
 
         return default;
     }
