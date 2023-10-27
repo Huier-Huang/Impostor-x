@@ -676,7 +676,7 @@ namespace Impostor.Server.Net.Inner.Objects
                 await MurderPlayerAsync(target);
             }
 
-            return true;
+            return false;
         }
 
         private async ValueTask<bool> HandleMurderPlayerAsync(ClientPlayer sender, IInnerPlayerControl? target, MurderResultFlags resultFlags)
