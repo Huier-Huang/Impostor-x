@@ -93,7 +93,7 @@ namespace Impostor.Server.Net.State
                         }
                         else
                         {
-                            _logger.LogWarning("Received DataFlag for unregistered NetId {0}.", netId);
+                            _logger.LogWarning("Received DataFlag for unregistered NetId {0}. sender:{1}", netId, sender.Client.Name);
                         }
 
                         break;
@@ -126,7 +126,7 @@ namespace Impostor.Server.Net.State
                         }
                         else
                         {
-                            _logger.LogWarning("Received RpcFlag for unregistered NetId {0}.", netId);
+                            _logger.LogWarning("Received RpcFlag for unregistered NetId {0}. sender:{1}", netId, sender.Client.Name);
                         }
 
                         break;
