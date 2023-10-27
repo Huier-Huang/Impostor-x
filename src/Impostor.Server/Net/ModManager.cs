@@ -3,21 +3,24 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
+using Impostor.Api.Config;
 using Impostor.Api.Games;
 using Impostor.Api.Net;
 using Impostor.Api.Utils;
 using Impostor.Server.Net.State;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Impostor.Server.Net;
 
 public class ModManager
 {
-    public ModManager(ILogger<ModManager> logger, IMessageWriterProvider messageWriterProvider, IServerEnvironment serverEnvironment)
+    public ModManager(ILogger<ModManager> logger, IMessageWriterProvider messageWriterProvider, IServerEnvironment serverEnvironment, IOptions<ModConfig> modConfig)
     {
         _logger = logger;
         _messageWriterProvider = messageWriterProvider;
         _serverEnvironment = serverEnvironment;
+        _modConfig = modConfig.Value;
     }
 
     public List<Mod> AllMods { get; internal set; } = new();
@@ -29,6 +32,7 @@ public class ModManager
     private readonly ILogger<ModManager> _logger;
     private readonly IMessageWriterProvider _messageWriterProvider;
     private readonly IServerEnvironment _serverEnvironment;
+    private readonly ModConfig _modConfig;
 
     private const ulong Magic = 0x72656163746f72;
 
@@ -36,7 +40,7 @@ public class ModManager
 
     internal ValueTask OnClientConnection(IHazelConnection connection, IMessageReader messageReader)
     {
-        if (!TryDeserialize(messageReader, out var version))
+        if (!TryDeserialize(messageReader, out var version) || !_modConfig.Enabled)
         {
             return default;
         }
@@ -70,7 +74,7 @@ public class ModManager
 
     internal ValueTask OnClientConnected(IHazelConnection connection, ClientBase clientBase)
     {
-        if (ModsMap.All(n => n.Key != connection))
+        if (ModsMap.All(n => n.Key != connection) || !_modConfig.Enabled)
         {
             return default;
         }
@@ -100,7 +104,7 @@ public class ModManager
     {
         joinResult = null;
 
-        if (!ModsMap.ContainsKey(clientPlayer.Client.Connection!))
+        if (!ModsMap.ContainsKey(clientPlayer.Client.Connection!) || !_modConfig.Enabled)
         {
             return default;
         }
@@ -142,7 +146,7 @@ public class ModManager
 
     internal ValueTask OnPlayerJoined(IGame game, ClientPlayer clientPlayer)
     {
-        if (!ModsMap.TryGetValue(clientPlayer.Client.Connection!, out var value))
+        if (!ModsMap.TryGetValue(clientPlayer.Client.Connection!, out var value) || !_modConfig.Enabled)
         {
             return default;
         }
