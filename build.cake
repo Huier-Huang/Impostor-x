@@ -2,8 +2,6 @@
 #addin "nuget:?package=Cake.Compression&Version=0.3.0"
 #addin "nuget:?package=Cake.FileHelpers&Version=5.0.0"
 
-using System.Collections.Generic;
-using System.IO;
 var workflow = BuildSystem.GitHubActions.Environment.Workflow;
 var buildId = workflow.RunNumber;
 var tag = workflow.RefType == GitHubActionsRefType.Tag ? workflow.RefName : null;
@@ -52,8 +50,8 @@ private void ImpostorPublish(string name, string project, string runtime) {
         MSBuildSettings = msbuildSettings
     });
 
-    Directory.CreateDirectory(projBuildDir.Combine("plugins"));
-    Directory.CreateDirectory(projBuildDir.Combine("plugins"));
+    CreateDirectory(projBuildDir.Combine("plugins"));
+    CreateDirectory(projBuildDir.Combine("plugins"));
 
     if (runtime == "win-x64") {
         FileWriteText(projBuildDir.CombineWithFilePath("run.bat"), "@echo off\r\nImpostor.Server.exe\r\npause");
