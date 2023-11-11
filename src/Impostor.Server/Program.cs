@@ -212,7 +212,7 @@ namespace Impostor.Server
                 .UseConsoleLifetime()
                 .UsePluginLoader(pluginConfig);
 
-            if (httpConfig!.Enabled)
+            if (httpConfig.Enabled)
             {
                 hostBuilder.ConfigureWebHostDefaults(builder =>
                 {
