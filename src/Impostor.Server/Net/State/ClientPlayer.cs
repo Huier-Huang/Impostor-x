@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Impostor.Api.Innersloth;
 using Impostor.Api.Net;
 using Impostor.Api.Net.Inner;
 using Impostor.Api.Unity;
@@ -39,6 +40,14 @@ namespace Impostor.Server.Net.State
         public InnerPlayerControl? Character { get; internal set; }
 
         public bool IsHost => Game?.Host == this;
+
+        public bool IsOldVersion
+        {
+            get
+            {
+                return Client.GameVersion.Compare(new GameVersion(2023, 10, 1)) < 0;
+            }
+        }
 
         public bool IsMod { get; internal set; }
 
