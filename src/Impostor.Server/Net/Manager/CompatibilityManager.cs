@@ -48,6 +48,7 @@ internal class CompatibilityManager : ICompatibilityManager
         new[]
         {
             new GameVersion(2023, 10, 1), // 2023.10.24
+            new GameVersion(2023, 11, 15), // 2023.11.28
         },
     };
 
@@ -68,6 +69,7 @@ internal class CompatibilityManager : ICompatibilityManager
         SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[0], "2023.7.11");
         SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[1], "2222.0.0(mod)");
         SupportedVersionNames.Add(DefaultSupportedVersions[5].GameVersions[0], "2023.10.24");
+        SupportedVersionNames.Add(DefaultSupportedVersions[5].GameVersions[1], "2023.11.28");
     }
 
 
