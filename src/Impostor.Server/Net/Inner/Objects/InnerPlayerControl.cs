@@ -7,6 +7,8 @@ using Impostor.Api;
 using Impostor.Api.Events.Managers;
 using Impostor.Api.Innersloth;
 using Impostor.Api.Innersloth.Customization;
+using Impostor.Api.Innersloth.GameOptions;
+using Impostor.Api.Innersloth.GameOptions.RoleOptions;
 using Impostor.Api.Net;
 using Impostor.Api.Net.Custom;
 using Impostor.Api.Net.Inner;
@@ -25,6 +27,7 @@ namespace Impostor.Server.Net.Inner.Objects
     {
         private static readonly byte ColorsCount = (byte)Enum.GetValues<ColorType>().Length;
 
+        private readonly Game _game;
         private readonly ILogger<InnerPlayerControl> _logger;
         private readonly IEventManager _eventManager;
         private readonly IDateTimeProvider _dateTimeProvider;
@@ -64,6 +67,26 @@ namespace Impostor.Server.Net.Inner.Objects
 
         /// <summary> Gets or sets target that was set by the last CheckMurder RPC. </summary>
         internal IInnerPlayerControl? IsMurdering { get; set; } = null;
+
+        internal DateTimeOffset? ProtectedOn { get; set; }
+
+        internal IInnerPlayerControl? ProtectedBy { get; set; }
+
+        internal bool IsProtected
+        {
+            get
+            {
+                // HnS doesn't have guardian angels
+                if (Game.Options is NormalGameOptions normalGameOptions && ProtectedOn != null)
+                {
+                    var guardianAngelOptions = (GuardianAngelRoleOptions)normalGameOptions.RoleOptions.Roles[RoleTypes.GuardianAngel].RoleOptions;
+                    var protectionExpiresAt = ProtectedOn.Value.AddSeconds(guardianAngelOptions.ProtectionDurationSeconds);
+                    return protectionExpiresAt >= _dateTimeProvider.UtcNow;
+                }
+
+                return false;
+            }
+        }
 
         public override ValueTask<bool> SerializeAsync(IMessageWriter writer, bool initialState)
         {
@@ -263,8 +286,9 @@ namespace Impostor.Server.Net.Inner.Objects
                         return false;
                     }
 
+                    Rpc12MurderPlayer.Deserialize(reader, Game, out var murdered, out var result);
+                    return await HandleMurderPlayer(sender, (InnerPlayerControl?)murdered, result);
                     Rpc12MurderPlayer.Deserialize(reader, Game, out var murdered, out var murderer);
-                    return await HandleMurderPlayerAsync(sender, murdered, murderer);
                 }
 
                 case RpcCalls.SendChat:
@@ -370,8 +394,8 @@ namespace Impostor.Server.Net.Inner.Objects
                         return false;
                     }
 
-                    Rpc45ProtectPlayer.Deserialize(reader, Game, out _, out _);
-                    break;
+                    Rpc45ProtectPlayer.Deserialize(reader, Game, out var protectTarget, out _);
+                    return await HandleProtectPlayer(sender, protectTarget);
                 }
 
                 case RpcCalls.Shapeshift:
@@ -394,7 +418,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     }
 
                     Rpc47CheckMurder.Deserialize(reader, Game, out var murdered);
-                    return await HandleCheckMurder(sender, murdered);
+                    return await HandleCheckMurder(sender, (InnerPlayerControl?)murdered);
                 }
 
                 case RpcCalls.CheckProtect:
@@ -405,7 +429,6 @@ namespace Impostor.Server.Net.Inner.Objects
                     }
 
                     Rpc48CheckProtect.Deserialize(reader, Game, out _);
-
                     break;
                 }
 
@@ -420,6 +443,13 @@ namespace Impostor.Server.Net.Inner.Objects
         {
             PlayerInfo.IsDead = true;
             PlayerInfo.LastDeathReason = reason;
+        }
+
+        internal void Protect(InnerPlayerControl guardianAngel)
+        {
+            // NOTE: Vanilla dispells all GA shields when a kill is blocked, so it suffices to keep track of the last protection action
+            ProtectedOn = _dateTimeProvider.UtcNow;
+            ProtectedBy = guardianAngel;
         }
 
         private async ValueTask HandleCompleteTask(ClientPlayer sender, uint taskId)
@@ -644,11 +674,16 @@ namespace Impostor.Server.Net.Inner.Objects
             return true;
         }
 
-        private async ValueTask<bool> HandleCheckMurder(ClientPlayer sender, IInnerPlayerControl? target)
+        private async ValueTask<bool> HandleCheckMurder(ClientPlayer sender, InnerPlayerControl? target)
         {
             if (!PlayerInfo.CanMurder(Game, _dateTimeProvider))
             {
-                if (await sender.Client.ReportCheatAsync(RpcCalls.CheckMurder, "Client tried to murder too fast"))
+                if (IsMurdering == target)
+                {
+                    // This request was made too quickly by spamming the kill button, cancel it if we're in server authoritive mode
+                    return _game.IsHostAuthoritive;
+                }
+                else if (await sender.Client.ReportCheatAsync(RpcCalls.CheckMurder, "Client tried to murder too fast"))
                 {
                     return false;
                 }
@@ -665,7 +700,8 @@ namespace Impostor.Server.Net.Inner.Objects
             PlayerInfo.LastMurder = _dateTimeProvider.UtcNow - TimeSpan.FromMilliseconds(sender.Client.Connection.AveragePing);
             IsMurdering = target;
 
-            if (_game.IsHostAuthoritive())
+            // Check if host authority mode is on
+            if (_game.IsHostAuthoritive)
             {
                 // Pass the RPC on unharmed, the client will handle it
                 return true;
@@ -673,14 +709,31 @@ namespace Impostor.Server.Net.Inner.Objects
 
             if (target != null)
             {
-                await MurderPlayerAsync(target);
+                var result = target.IsProtected ? MurderResultFlags.FailedProtected : MurderResultFlags.Succeeded;
+
+                var evt = new PlayerCheckMurderEvent(Game, sender, this, target, result);
+                await _eventManager.CallAsync(evt);
+
+                if (!evt.IsCancelled)
+                {
+                    target.ProtectedOn = null; // Clear GA protection in all cases
+                    await MurderPlayerAsync(target, evt.Result);
+                }
             }
 
             return false;
         }
-
+        
         private async ValueTask<bool> HandleMurderPlayerAsync(ClientPlayer sender, IInnerPlayerControl? target, MurderResultFlags resultFlags)
         {
+            if (!_game.IsHostAuthoritive)
+            {
+                if (await sender.Client.ReportCheatAsync(RpcCalls.MurderPlayer, "Client tried to murder directly"))
+                {
+                    return false;
+                }
+            }
+
             if (target == null || target.PlayerInfo.IsImpostor)
             {
                 if (await sender.Client.ReportCheatAsync(RpcCalls.MurderPlayer, "Client tried to murder invalid target"))
@@ -700,8 +753,22 @@ namespace Impostor.Server.Net.Inner.Objects
 
             if (target != null && !target.PlayerInfo.IsDead)
             {
-                ((InnerPlayerControl)target).Die(DeathReason.Kill);
-                await _eventManager.CallAsync(new PlayerMurderEvent(Game, sender, this, target));
+                // In host authoritive mode every client has to figure out if the kill was prevented by guardian protection on it's own
+                if ((result & MurderResultFlags.Succeeded) != 0 && target.IsProtected)
+                {
+                    result = (result & ~MurderResultFlags.Succeeded) | MurderResultFlags.FailedProtected;
+                }
+
+                if (!result.IsFailed())
+                {
+                    target.Die(DeathReason.Kill);
+                }
+                else if ((result & MurderResultFlags.FailedProtected) != 0)
+                {
+                    target.ProtectedOn = null;
+                }
+
+                await _eventManager.CallAsync(new PlayerMurderEvent(Game, sender, this, target, result));
             }
 
             IsMurdering = null;
@@ -709,6 +776,31 @@ namespace Impostor.Server.Net.Inner.Objects
             return true;
         }
 
+        private async ValueTask<bool> HandleProtectPlayer(ClientPlayer sender, IInnerPlayerControl? target)
+        {
+            if (target == null)
+            {
+                if (await sender.Client.ReportCheatAsync(RpcCalls.CheckProtect, "Client tried to protect invalid target"))
+                {
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (PlayerInfo.RoleType != RoleTypes.GuardianAngel)
+            {
+                if (await sender.Client.ReportCheatAsync(RpcCalls.CheckProtect, "Client tried to protect but it wasn't a guardian angel"))
+                {
+                    return false;
+                }
+            }
+
+            ((InnerPlayerControl)target).Protect(this);
+
+            return true;
+        }
+        
         private async ValueTask<bool> HandleSendChatAsync(ClientPlayer sender, string message)
         {
             var @event = new PlayerChatEvent(Game, sender, this, message);

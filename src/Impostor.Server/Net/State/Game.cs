@@ -98,6 +98,8 @@ namespace Impostor.Server.Net.State
 
         public IEnumerable<IClientPlayer> Players => _players.Select(p => p.Value);
 
+        public bool IsHostAuthoritive => Host != null && Host.Client.GameVersion.HasDisableServerAuthorityFlag;
+
         internal GameNet GameNet { get; }
 
         private bool TryGetPlayer(int id, [MaybeNullWhen(false)] out ClientPlayer player)
