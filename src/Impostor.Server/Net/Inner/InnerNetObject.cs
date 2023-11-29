@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using Impostor.Api.Games;
+using Impostor.Api.Innersloth;
 using Impostor.Api.Net;
 using Impostor.Api.Net.Custom;
 using Impostor.Api.Net.Inner;

@@ -29,6 +29,8 @@ namespace Impostor.Api.Net
 
         public bool IsHost { get; }
 
+        public bool IsOldVersion { get; }
+
         /// <summary>
         ///     Checks if the specified <see cref="IInnerNetObject" /> is owned by <see cref="IClientPlayer" />.
         /// </summary>

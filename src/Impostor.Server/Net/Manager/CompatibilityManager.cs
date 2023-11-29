@@ -13,11 +13,19 @@ using VersionCompareResult = ICompatibilityManager.VersionCompareResult;
 
 internal class CompatibilityManager : ICompatibilityManager
 {
+    public static readonly Dictionary<GameVersion, string> SupportedVersionNames = new();
+
     private static readonly CompatibilityGroup[] DefaultSupportedVersions =
     {
         new[]
         {
             new GameVersion(2023, 10, 1), // 2023.10.24
+        },
+
+        new[]
+        {
+            new GameVersion(2023, 10, 1), // 2023.10.24
+            new GameVersion(2023, 11, 15), // 2023.11.28
         },
     };
 
@@ -26,6 +34,21 @@ internal class CompatibilityManager : ICompatibilityManager
     private readonly ILogger<CompatibilityManager> _logger;
     private GameVersion _lowestVersionSupported = new(int.MaxValue);
     private GameVersion _highestVersionSupported = new(0);
+
+    static CompatibilityManager()
+    {
+        SupportedVersionNames.Add(DefaultSupportedVersions[0].GameVersions[0], "2022.12.8");
+        SupportedVersionNames.Add(DefaultSupportedVersions[1].GameVersions[0], "2022.12.14");
+        SupportedVersionNames.Add(DefaultSupportedVersions[2].GameVersions[0], "2023.2.28");
+        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[0], "2023.3.28s");
+        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[1], "2023.3.28a");
+        SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[2], "2023.6.13");
+        SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[0], "2023.7.11");
+        SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[1], "2222.0.0(mod)");
+        SupportedVersionNames.Add(DefaultSupportedVersions[5].GameVersions[0], "2023.10.24");
+        SupportedVersionNames.Add(DefaultSupportedVersions[5].GameVersions[1], "2023.11.28");
+    }
+
 
     public CompatibilityManager(ILogger<CompatibilityManager> logger) : this(logger, DefaultSupportedVersions)
     {
@@ -42,6 +65,18 @@ internal class CompatibilityManager : ICompatibilityManager
     }
 
     public IEnumerable<CompatibilityGroup> CompatibilityGroups => _compatibilityGroups;
+
+    public bool TryGetVersionName(GameVersion version, out string name)
+    {
+        name = string.Empty;
+        foreach (var versionName in from versionName in SupportedVersionNames where versionName.Key.Year == version.Year where versionName.Key.Month == version.Month where versionName.Key.Day == version.Day select versionName)
+        {
+            name = versionName.Value;
+            return true;
+        }
+
+        return false;
+    }
 
     private CompatibilityGroup? TryGetCompatibilityGroup(GameVersion clientVersion)
     {
@@ -77,12 +112,14 @@ internal class CompatibilityManager : ICompatibilityManager
         return VersionCompareResult.Unknown;
     }
 
-    public GameJoinError CanJoinGame(GameVersion hostVersion, GameVersion clientVersion)
+    public bool CanJoinGame(GameVersion hostVersion, GameVersion clientVersion, out GameJoinError joinError)
     {
+        joinError = GameJoinError.None;
+
         if (hostVersion == clientVersion)
         {
             // Optimize a common case: a player on version X should always be able to join version X
-            return GameJoinError.None;
+            return true;
         }
 
         var hostCompatGroup = this.TryGetCompatibilityGroup(hostVersion);
@@ -90,17 +127,19 @@ internal class CompatibilityManager : ICompatibilityManager
 
         if (hostCompatGroup == null || playerCompatGroup == null)
         {
-            return GameJoinError.InvalidClient;
+            joinError = GameJoinError.InvalidClient;
+            return false;
         }
 
-        if (hostCompatGroup != playerCompatGroup)
+        if (hostCompatGroup == playerCompatGroup)
         {
-            return clientVersion < hostVersion
-                ? GameJoinError.ClientOutdated
-                : GameJoinError.ClientTooNew;
+            return true;
         }
 
-        return GameJoinError.None;
+        joinError = clientVersion < hostVersion
+            ? GameJoinError.ClientOutdated
+            : GameJoinError.ClientTooNew;
+        return false;
     }
 
     void ICompatibilityManager.AddCompatibilityGroup(CompatibilityGroup compatibilityGroup)

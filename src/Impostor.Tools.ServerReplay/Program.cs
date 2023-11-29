@@ -166,11 +166,23 @@ namespace Impostor.Tools.ServerReplay
                     var address = new IPEndPoint(new IPAddress(addressBytes), addressPort);
                     var name = reader.ReadString();
                     var gameVersion = new GameVersion(reader.ReadInt32());
+                    var language = (Language)reader.ReadUInt32();
+                    var quickChatMode = (QuickChatModes)reader.ReadByte();
 
                     // Create and register connection.
                     var connection = new MockHazelConnection(address);
 
-                    await _clientManager.RegisterConnectionAsync(connection, name, gameVersion, Language.English, QuickChatModes.FreeChatOrQuickChat, new PlatformSpecificData(Platforms.Unknown, "ServerReplay"));
+                    if (language != Language.SChinese)
+                    {
+                        language = Language.English;
+                    }
+
+                    if (quickChatMode != QuickChatModes.QuickChatOnly)
+                    {
+                        quickChatMode = QuickChatModes.FreeChatOrQuickChat;
+                    }
+
+                    await _clientManager.RegisterConnectionAsync(connection, name, gameVersion, language, quickChatMode, new PlatformSpecificData(Platforms.Unknown, "ServerReplay"));
 
                     // Store reference for ourselfs.
                     Connections.Add(clientId, connection);

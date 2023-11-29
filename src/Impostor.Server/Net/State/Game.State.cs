@@ -26,6 +26,7 @@ namespace Impostor.Server.Net.State
                 HostId = player.Client.Id;
             }
 
+            _modManager.OnPlayerJoined(this, player);
             await _eventManager.CallAsync(new GamePlayerJoinedEvent(this, player));
         }
 

@@ -32,6 +32,8 @@ namespace Impostor.Server.Net.State
         private readonly ICompatibilityManager _compatibilityManager;
         private readonly CompatibilityConfig _compatibilityConfig;
         private readonly TimeoutConfig _timeoutConfig;
+        private readonly AntiManager _antiManager;
+        private readonly ModManager _modManager;
 
         public Game(
             ILogger<Game> logger,
@@ -45,7 +47,9 @@ namespace Impostor.Server.Net.State
             IEventManager eventManager,
             ICompatibilityManager compatibilityManager,
             IOptions<CompatibilityConfig> compatibilityConfig,
-            IOptions<TimeoutConfig> timeoutConfig)
+            IOptions<TimeoutConfig> timeoutConfig,
+            AntiManager antiManager,
+            ModManager modManager)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
@@ -63,6 +67,8 @@ namespace Impostor.Server.Net.State
             _clientManager = clientManager;
             _eventManager = eventManager;
             _compatibilityManager = compatibilityManager;
+            _antiManager = antiManager;
+            _modManager = modManager;
             _compatibilityConfig = compatibilityConfig.Value;
             _timeoutConfig = timeoutConfig.Value;
             Items = new ConcurrentDictionary<object, object>();
@@ -96,7 +102,7 @@ namespace Impostor.Server.Net.State
 
         internal GameNet GameNet { get; }
 
-        public bool TryGetPlayer(int id, [MaybeNullWhen(false)] out ClientPlayer player)
+        private bool TryGetPlayer(int id, [MaybeNullWhen(false)] out ClientPlayer player)
         {
             if (_players.TryGetValue(id, out var result))
             {
@@ -145,7 +151,19 @@ namespace Impostor.Server.Net.State
             return Players
                 .Where(filter)
                 .Select(p => p.Client.Connection)
-                .Where(c => c != null && c.IsConnected)!;
+                .Where(c => c is { IsConnected: true })!;
+        }
+
+        internal bool IsHostAuthoritive()
+        {
+            if (Host == null)
+            {
+                return false;
+            }
+            else
+            {
+                return Host.Client.GameVersion.HasDisableServerAuthorityFlag;
+            }
         }
     }
 }

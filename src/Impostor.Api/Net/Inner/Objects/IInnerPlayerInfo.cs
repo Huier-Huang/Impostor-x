@@ -27,6 +27,10 @@ namespace Impostor.Api.Net.Inner.Objects
         /// </summary>
         bool IsDead { get; }
 
+        string FriendCode { get; }
+
+        string Puid { get; }
+
         Dictionary<PlayerOutfitType, PlayerOutfit> Outfits { get; }
 
         PlayerOutfitType CurrentOutfitType { get; set; }

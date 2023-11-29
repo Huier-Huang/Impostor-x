@@ -20,5 +20,10 @@
   "Debug": {
     "GameRecorderEnabled": true,
     "GameRecorderPath": ""
+  },
+  "HttpServer": {
+    "Enabled": true,
+    "ListenIp": "127.0.0.1",
+    "ListenPort": 22023
   }
 }

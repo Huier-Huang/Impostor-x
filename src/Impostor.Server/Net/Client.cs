@@ -5,9 +5,9 @@ using Impostor.Api;
 using Impostor.Api.Config;
 using Impostor.Api.Games;
 using Impostor.Api.Innersloth;
-using Impostor.Api.Innersloth.GameOptions;
 using Impostor.Api.Net;
 using Impostor.Api.Net.Custom;
+using Impostor.Api.Net.Manager;
 using Impostor.Api.Net.Messages;
 using Impostor.Api.Net.Messages.C2S;
 using Impostor.Api.Net.Messages.S2C;
@@ -25,8 +25,21 @@ namespace Impostor.Server.Net
         private readonly ClientManager _clientManager;
         private readonly GameManager _gameManager;
         private readonly ICustomMessageManager<ICustomRootMessage> _customMessageManager;
+        private readonly ICompatibilityManager _compatibilityManager;
 
-        public Client(ILogger<Client> logger, IOptions<AntiCheatConfig> antiCheatOptions, ClientManager clientManager, GameManager gameManager, ICustomMessageManager<ICustomRootMessage> customMessageManager, string name, GameVersion gameVersion, Language language, QuickChatModes chatMode, PlatformSpecificData platformSpecificData, IHazelConnection connection)
+        public Client(
+            ILogger<Client> logger,
+            IOptions<AntiCheatConfig> antiCheatOptions,
+            ClientManager clientManager,
+            GameManager gameManager,
+            ICustomMessageManager<ICustomRootMessage> customMessageManager,
+            string name,
+            GameVersion gameVersion,
+            Language language,
+            QuickChatModes chatMode,
+            PlatformSpecificData platformSpecificData,
+            IHazelConnection connection,
+            ICompatibilityManager compatibilityManager)
             : base(name, gameVersion, language, chatMode, platformSpecificData, connection)
         {
             _logger = logger;
@@ -34,11 +47,12 @@ namespace Impostor.Server.Net
             _clientManager = clientManager;
             _gameManager = gameManager;
             _customMessageManager = customMessageManager;
+            _compatibilityManager = compatibilityManager;
         }
 
         public override async ValueTask<bool> ReportCheatAsync(CheatContext context, string message)
         {
-            if (!_antiCheatConfig.Enabled)
+            if (!_antiCheatConfig.Enabled || this.Player!.IsMod)
             {
                 return false;
             }
@@ -99,6 +113,8 @@ namespace Impostor.Server.Net
                     }
 
                     var result = await game.AddClientAsync(this);
+                    _compatibilityManager.TryGetVersionName(game.Host!.Client.GameVersion, out var hostVer);
+                    _compatibilityManager.TryGetVersionName(this.GameVersion, out var clientVer);
 
                     switch (result.Error)
                     {
@@ -123,10 +139,10 @@ namespace Impostor.Server.Net
                             await DisconnectAsync(DisconnectReason.Custom, DisconnectMessages.Destroyed);
                             break;
                         case GameJoinError.ClientOutdated:
-                            await DisconnectAsync(DisconnectReason.Custom, DisconnectMessages.ClientOutdated);
+                            await DisconnectAsync(DisconnectReason.Custom, string.Format(this.Language == Language.SChinese ? DisconnectMessages.CnClientOutdated : DisconnectMessages.ClientOutdated, hostVer, clientVer));
                             break;
                         case GameJoinError.ClientTooNew:
-                            await DisconnectAsync(DisconnectReason.Custom, DisconnectMessages.ClientTooNew);
+                            await DisconnectAsync(DisconnectReason.Custom, string.Format(this.Language == Language.SChinese ? DisconnectMessages.CnClientTooNew : DisconnectMessages.ClientTooNew, hostVer, clientVer));
                             break;
                         case GameJoinError.Custom:
                             await DisconnectAsync(DisconnectReason.Custom, result.Message);
@@ -260,9 +276,8 @@ namespace Impostor.Server.Net
 
                 case MessageFlags.GetGameListV2:
                 {
-                    Message16GetGameListC2S.Deserialize(reader, out var options, out _, out _, out var filterOptions);
-                    await OnRequestGameListAsync(options, filterOptions);
-                    break;
+                    await DisconnectAsync(DisconnectReason.Custom, DisconnectMessages.UdpMatchmakingUnsupported);
+                    return;
                 }
 
                 case MessageFlags.SetActivePodType:
@@ -350,22 +365,6 @@ namespace Impostor.Server.Net
             }
 
             return true;
-        }
-
-        /// <summary>
-        ///     Triggered when the connected client requests the game listing.
-        /// </summary>
-        /// <param name="options">Options specific to the game mode. At this moment, the client can only specify the map, impostor count and chat language.</param>
-        /// <param name="filterOptions">Filter options not specific to the game mode.</param>
-        private ValueTask OnRequestGameListAsync(IGameOptions options, GameFilterOptions filterOptions)
-        {
-            using var message = MessageWriter.Get(MessageType.Reliable);
-
-            var games = _gameManager.FindListings((MapFlags)options.Map, options.NumImpostors, options.Keywords, this.GameVersion, filterOptions.FilterTags);
-
-            Message16GetGameListS2C.Serialize(message, games);
-
-            return Connection.SendAsync(message);
         }
 
         /// <summary>

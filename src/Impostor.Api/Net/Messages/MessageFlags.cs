@@ -28,6 +28,7 @@ namespace Impostor.Api.Net.Messages
         public const byte SetActivePodType = 21;
         public const byte QueryPlatformIds = 22;
         public const byte QueryLobbyInfo = 23;
+        public const byte ServerDebugAlert = 255;
 
         private static readonly Dictionary<byte, string> FlagCache;
 

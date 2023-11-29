@@ -31,6 +31,7 @@ namespace Impostor.Server.Net.Inner.Objects
         private readonly ILogger<InnerPlayerControl> _logger;
         private readonly IEventManager _eventManager;
         private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly Game _game;
 
         public InnerPlayerControl(ICustomMessageManager<ICustomRpc> customMessageManager, Game game, ILogger<InnerPlayerControl> logger, IServiceProvider serviceProvider, IEventManager eventManager, IDateTimeProvider dateTimeProvider) : base(customMessageManager, game)
         {
@@ -201,7 +202,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     return await HandleSetColor(sender, color);
                 }
 
-                case RpcCalls.SetHat:
+                case RpcCalls.SetHatString:
                 {
                     if (!await ValidateOwnership(call, sender))
                     {
@@ -212,7 +213,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     return true;
                 }
 
-                case RpcCalls.SetSkin:
+                case RpcCalls.SetSkinString:
                 {
                     if (!await ValidateOwnership(call, sender))
                     {
@@ -223,7 +224,18 @@ namespace Impostor.Server.Net.Inner.Objects
                     return true;
                 }
 
-                case RpcCalls.SetVisor:
+                case RpcCalls.SetPetString:
+                {
+                    if (!await ValidateOwnership(call, sender))
+                    {
+                        return false;
+                    }
+
+                    Rpc41SetPet.Deserialize(reader, out var pet);
+                    return await HandleSetPetAsync(sender, pet);
+                }
+
+                case RpcCalls.SetVisorString:
                 {
                     if (!await ValidateOwnership(call, sender))
                     {
@@ -234,7 +246,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     return true;
                 }
 
-                case RpcCalls.SetNamePlate:
+                case RpcCalls.SetNamePlateString:
                 {
                     if (!await ValidateOwnership(call, sender))
                     {
@@ -276,6 +288,7 @@ namespace Impostor.Server.Net.Inner.Objects
 
                     Rpc12MurderPlayer.Deserialize(reader, Game, out var murdered, out var result);
                     return await HandleMurderPlayer(sender, (InnerPlayerControl?)murdered, result);
+                    Rpc12MurderPlayer.Deserialize(reader, Game, out var murdered, out var murderer);
                 }
 
                 case RpcCalls.SendChat:
@@ -286,7 +299,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     }
 
                     Rpc13SendChat.Deserialize(reader, out var message);
-                    return await HandleSendChat(sender, message);
+                    return await HandleSendChatAsync(sender, message);
                 }
 
                 case RpcCalls.StartMeeting:
@@ -297,7 +310,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     }
 
                     Rpc14StartMeeting.Deserialize(reader, out var targetId);
-                    await HandleStartMeeting(targetId);
+                    await HandleStartMeetingAsync(targetId);
                     break;
                 }
 
@@ -323,17 +336,6 @@ namespace Impostor.Server.Net.Inner.Objects
                     break;
                 }
 
-                case RpcCalls.SetPet:
-                {
-                    if (!await ValidateOwnership(call, sender))
-                    {
-                        return false;
-                    }
-
-                    Rpc41SetPet.Deserialize(reader, out var pet);
-                    return await HandleSetPet(sender, pet);
-                }
-
                 case RpcCalls.SetStartCounter:
                 {
                     if (!await ValidateOwnership(call, sender))
@@ -342,7 +344,7 @@ namespace Impostor.Server.Net.Inner.Objects
                     }
 
                     Rpc18SetStartCounter.Deserialize(reader, out var sequenceId, out var startCounter);
-                    return await HandleSetStartCounter(sender, sequenceId, startCounter);
+                    return await HandleSetStartCounterAsync(sender, sequenceId, startCounter);
                 }
 
                 case RpcCalls.UsePlatform:
@@ -650,7 +652,7 @@ namespace Impostor.Server.Net.Inner.Objects
 
         private async ValueTask<bool> HandleSetHat(ClientPlayer sender, string hat)
         {
-            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetHat, "Client tried to change hat while not in lobby"))
+            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetHatString, "Client tried to change hat while not in lobby"))
             {
                 return false;
             }
@@ -662,7 +664,7 @@ namespace Impostor.Server.Net.Inner.Objects
 
         private async ValueTask<bool> HandleSetSkin(ClientPlayer sender, string skin)
         {
-            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetSkin, "Client tried to change skin while not in lobby"))
+            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetSkinString, "Client tried to change skin while not in lobby"))
             {
                 return false;
             }
@@ -721,8 +723,8 @@ namespace Impostor.Server.Net.Inner.Objects
 
             return false;
         }
-
-        private async ValueTask<bool> HandleMurderPlayer(ClientPlayer sender, InnerPlayerControl? target, MurderResultFlags result)
+        
+        private async ValueTask<bool> HandleMurderPlayerAsync(ClientPlayer sender, IInnerPlayerControl? target, MurderResultFlags resultFlags)
         {
             if (!_game.IsHostAuthoritive)
             {
@@ -798,8 +800,8 @@ namespace Impostor.Server.Net.Inner.Objects
 
             return true;
         }
-
-        private async ValueTask<bool> HandleSendChat(ClientPlayer sender, string message)
+        
+        private async ValueTask<bool> HandleSendChatAsync(ClientPlayer sender, string message)
         {
             var @event = new PlayerChatEvent(Game, sender, this, message);
             await _eventManager.CallAsync(@event);
@@ -807,15 +809,15 @@ namespace Impostor.Server.Net.Inner.Objects
             return !@event.IsCancelled;
         }
 
-        private async ValueTask HandleStartMeeting(byte targetId)
+        private async ValueTask HandleStartMeetingAsync(byte targetId)
         {
             var deadPlayer = Game.GameNet.GameData!.GetPlayerById(targetId)?.Controller;
             await _eventManager.CallAsync(new PlayerStartMeetingEvent(Game, Game.GetClientPlayer(this.OwnerId)!, this, deadPlayer));
         }
 
-        private async ValueTask<bool> HandleSetPet(ClientPlayer sender, string pet)
+        private async ValueTask<bool> HandleSetPetAsync(ClientPlayer sender, string pet)
         {
-            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetPet, "Client tried to change pet while not in lobby"))
+            if (Game.GameState == GameStates.Started && await sender.Client.ReportCheatAsync(RpcCalls.SetPetString, "Client tried to change pet while not in lobby"))
             {
                 return false;
             }
@@ -825,7 +827,7 @@ namespace Impostor.Server.Net.Inner.Objects
             return true;
         }
 
-        private async ValueTask<bool> HandleSetStartCounter(ClientPlayer sender, int sequenceId, sbyte startCounter)
+        private async ValueTask<bool> HandleSetStartCounterAsync(ClientPlayer sender, int sequenceId, sbyte startCounter)
         {
             if (!sender.IsHost && startCounter != -1)
             {

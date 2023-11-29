@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Impostor.Api.Config;
@@ -24,9 +25,17 @@ namespace Impostor.Server.Net.Manager
         private readonly ICompatibilityManager _compatibilityManager;
         private readonly CompatibilityConfig _compatibilityConfig;
         private readonly IClientFactory _clientFactory;
+        private readonly ModManager _modManager;
         private int _idLast;
 
-        public ClientManager(ILogger<ClientManager> logger, IEventManager eventManager, IClientFactory clientFactory, ICompatibilityManager compatibilityManager, IOptions<CompatibilityConfig> compatibilityConfig)
+        public ClientManager(
+            ILogger<ClientManager> logger,
+            IEventManager eventManager,
+            IClientFactory clientFactory,
+            ICompatibilityManager compatibilityManager,
+            IOptions<CompatibilityConfig> compatibilityConfig,
+            ModManager modManager
+            )
         {
             _logger = logger;
             _eventManager = eventManager;
@@ -34,6 +43,7 @@ namespace Impostor.Server.Net.Manager
             _clients = new ConcurrentDictionary<int, ClientBase>();
             _compatibilityManager = compatibilityManager;
             _compatibilityConfig = compatibilityConfig.Value;
+            _modManager = modManager;
         }
 
         public IEnumerable<ClientBase> Clients => _clients.Values;
@@ -56,6 +66,7 @@ namespace Impostor.Server.Net.Manager
 
         public async ValueTask RegisterConnectionAsync(IHazelConnection connection, string name, GameVersion clientVersion, Language language, QuickChatModes chatMode, PlatformSpecificData? platformSpecificData)
         {
+            var serverVer = $"{CompatibilityManager.SupportedVersionNames.Values.First()} - {CompatibilityManager.SupportedVersionNames.Values.Last()}";
             var versionCompare = _compatibilityManager.CanConnectToServer(clientVersion);
             if (versionCompare == ICompatibilityManager.VersionCompareResult.ServerTooOld && _compatibilityConfig.AllowFutureGameVersions && platformSpecificData != null)
             {
@@ -69,13 +80,13 @@ namespace Impostor.Server.Net.Manager
 
                 var message = versionCompare switch
                 {
-                    ICompatibilityManager.VersionCompareResult.ClientTooOld => DisconnectMessages.VersionClientTooOld,
-                    ICompatibilityManager.VersionCompareResult.ServerTooOld => DisconnectMessages.VersionServerTooOld,
-                    ICompatibilityManager.VersionCompareResult.Unknown => DisconnectMessages.VersionUnsupported,
+                    ICompatibilityManager.VersionCompareResult.ClientTooOld => language == Language.SChinese ? DisconnectMessages.CnVersionClientTooOld : DisconnectMessages.VersionClientTooOld,
+                    ICompatibilityManager.VersionCompareResult.ServerTooOld => language == Language.SChinese ? DisconnectMessages.CnVersionServerTooOld : DisconnectMessages.VersionServerTooOld,
+                    ICompatibilityManager.VersionCompareResult.Unknown => language == Language.SChinese ? DisconnectMessages.CnVersionUnsupported : DisconnectMessages.VersionUnsupported,
                     _ => throw new ArgumentOutOfRangeException(),
                 };
 
-                await connection.CustomDisconnectAsync(DisconnectReason.Custom, message);
+                await connection.CustomDisconnectAsync(DisconnectReason.Custom, string.Format(message, CompatibilityManager.SupportedVersionNames[clientVersion], serverVer));
                 return;
             }
 
@@ -98,6 +109,7 @@ namespace Impostor.Server.Net.Manager
             _logger.LogTrace("Client connected.");
             _clients.TryAdd(id, client);
 
+            await _modManager.OnClientConnected(connection, client);
             await _eventManager.CallAsync(new ClientConnectedEvent(connection, client));
         }
 

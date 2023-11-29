@@ -97,5 +97,17 @@
         MainHall = 45,
 
         Medical = 46,
+        Decontamination3 = 47,
+        Zipline = 48,
+        MiningPit = 49,
+        FishingDock = 50,
+        RecRoom = 51,
+        Lookout = 52,
+        Beach = 53,
+        Highlands = 54,
+        Jungle = 55,
+        SleepingQuarters = 56,
+        MushroomMixupSabotage = 57,
+        HeliSabotage = 58,
     }
 }

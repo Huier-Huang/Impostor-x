@@ -93,7 +93,7 @@ namespace Impostor.Server.Net.State
                         }
                         else
                         {
-                            _logger.LogWarning("Received DataFlag for unregistered NetId {0}.", netId);
+                            _logger.LogWarning("Received DataFlag for unregistered NetId {0}. sender:{1}", netId, sender.Client.Name);
                         }
 
                         break;
@@ -102,9 +102,23 @@ namespace Impostor.Server.Net.State
                     case GameDataTag.RpcFlag:
                     {
                         var netId = reader.ReadPackedUInt32();
+                        var rpcCall = (RpcCalls)reader.ReadByte();
+
+                        if (!_antiManager.Check(sender, target, rpcCall, out var log, out var reason))
+                        {
+                            if (log != null)
+                            {
+                                _logger.LogInformation(log);
+                            }
+
+                            await _antiManager.StartKickAsync(sender, reason);
+
+                            break;
+                        }
+
                         if (_allObjectsFast.TryGetValue(netId, out var obj))
                         {
-                            if (!await obj.HandleRpcAsync(sender, target, (RpcCalls)reader.ReadByte(), reader))
+                            if (!await obj.HandleRpcAsync(sender, target, rpcCall, reader))
                             {
                                 parent.RemoveMessage(reader);
                                 continue;
@@ -112,7 +126,7 @@ namespace Impostor.Server.Net.State
                         }
                         else
                         {
-                            _logger.LogWarning("Received RpcFlag for unregistered NetId {0}.", netId);
+                            _logger.LogWarning("Received RpcFlag for unregistered NetId {0}. sender:{1}", netId, sender.Client.Name);
                         }
 
                         break;

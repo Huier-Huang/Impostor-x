@@ -33,9 +33,12 @@ namespace Impostor.Api.Net.Manager
         /// </returns>
         public VersionCompareResult CanConnectToServer(GameVersion clientVersion);
 
+        public bool TryGetVersionName(GameVersion version, out string name);
+
         /// <summary>Check if a player can join an existing game.</summary>
         /// <param name="hostVersion">The client version of the host.</param>
         /// <param name="clientVersion">The client version of the player that is joining.</param>
+        /// <param name="joinError">Game Join Error.</param>
         /// <returns>
         /// <list type="bullet">
         ///   <item><see cref="GameJoinError.None"/> if everything is OK.</item>
@@ -43,7 +46,7 @@ namespace Impostor.Api.Net.Manager
         ///   <item><see cref="GameJoinError.ClientTooNew"/> if the player runs a too new game version.</item>
         /// </list>
         /// </returns>
-        public GameJoinError CanJoinGame(GameVersion hostVersion, GameVersion clientVersion);
+        public bool CanJoinGame(GameVersion hostVersion, GameVersion clientVersion, out GameJoinError joinError);
 
         /// <summary>
         /// Add a new compatibility group.

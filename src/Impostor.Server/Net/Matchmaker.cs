@@ -20,18 +20,22 @@ namespace Impostor.Server.Net
         private readonly ClientManager _clientManager;
         private readonly ObjectPool<MessageReader> _readerPool;
         private readonly ILogger<HazelConnection> _connectionLogger;
+        private readonly ModManager _modManager;
         private UdpConnectionListener? _connection;
 
         public Matchmaker(
             IEventManager eventManager,
             ClientManager clientManager,
             ObjectPool<MessageReader> readerPool,
-            ILogger<HazelConnection> connectionLogger)
+            ILogger<HazelConnection> connectionLogger,
+            ModManager modManager
+            )
         {
             _eventManager = eventManager;
             _clientManager = clientManager;
             _readerPool = readerPool;
             _connectionLogger = connectionLogger;
+            _modManager = modManager;
         }
 
         public async ValueTask StartAsync(IPEndPoint ipEndPoint)
@@ -66,6 +70,7 @@ namespace Impostor.Server.Net
 
             var connection = new HazelConnection(e.Connection, _connectionLogger);
 
+            await _modManager.OnClientConnection(connection, e.HandshakeData);
             await _eventManager.CallAsync(new ClientConnectionEvent(connection, e.HandshakeData));
 
             // Register client

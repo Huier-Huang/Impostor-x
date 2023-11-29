@@ -35,7 +35,7 @@ else
 //////////////////////////////////////////////////////////////////////
 
 // Remove unnecessary files for packaging.
-private void ImpostorPublish(string name, string project, string runtime, bool isServer = false) {
+private void ImpostorPublish(string name, string project, string runtime) {
     var projBuildDir = buildDir.Combine(name + "_" + runtime);
     var projBuildName = name + "_" + buildVersion + "_" + runtime;
 
@@ -50,13 +50,11 @@ private void ImpostorPublish(string name, string project, string runtime, bool i
         MSBuildSettings = msbuildSettings
     });
 
-    if (isServer) {
-        CreateDirectory(projBuildDir.Combine("plugins"));
-        CreateDirectory(projBuildDir.Combine("libraries"));
+    CreateDirectory(projBuildDir.Combine("plugins"));
+    CreateDirectory(projBuildDir.Combine("plugins"));
 
-        if (runtime == "win-x64") {
-            FileWriteText(projBuildDir.CombineWithFilePath("run.bat"), "@echo off\r\nImpostor.Server.exe\r\npause");
-        }
+    if (runtime == "win-x64") {
+        FileWriteText(projBuildDir.CombineWithFilePath("run.bat"), "@echo off\r\nImpostor.Server.exe\r\npause");
     }
 
     if (runtime == "win-x64") {
@@ -64,7 +62,7 @@ private void ImpostorPublish(string name, string project, string runtime, bool i
     } else {
         GZipCompress(projBuildDir, buildDir.CombineWithFilePath(projBuildName + ".tar.gz"));
     }
-    
+
     if (BuildSystem.GitHubActions.IsRunningOnGitHubActions) {
         BuildSystem.GitHubActions.Commands.UploadArtifact(projBuildDir, projBuildName);
     }
@@ -126,11 +124,11 @@ Task("Build")
         });
             
         // Server.
-        ImpostorPublish("Impostor-Server", "./src/Impostor.Server/Impostor.Server.csproj", "win-x64", true);
-        ImpostorPublish("Impostor-Server", "./src/Impostor.Server/Impostor.Server.csproj", "osx-x64", true);
-        ImpostorPublish("Impostor-Server", "./src/Impostor.Server/Impostor.Server.csproj", "linux-x64", true);
-        ImpostorPublish("Impostor-Server", "./src/Impostor.Server/Impostor.Server.csproj", "linux-arm", true);
-        ImpostorPublish("Impostor-Server", "./src/Impostor.Server/Impostor.Server.csproj", "linux-arm64", true);
+        ImpostorPublish("Impostor-Server", "./src/Impostor.Server/Impostor.Server.csproj", "win-x64");
+        ImpostorPublish("Impostor-Server", "./src/Impostor.Server/Impostor.Server.csproj", "osx-x64");
+        ImpostorPublish("Impostor-Server", "./src/Impostor.Server/Impostor.Server.csproj", "linux-x64");
+        ImpostorPublish("Impostor-Server", "./src/Impostor.Server/Impostor.Server.csproj", "linux-arm");
+        ImpostorPublish("Impostor-Server", "./src/Impostor.Server/Impostor.Server.csproj", "linux-arm64");
 
         // API.
         DotNetPack("./src/Impostor.Api/Impostor.Api.csproj", new DotNetPackSettings {
