@@ -16,8 +16,13 @@ namespace Impostor.Api.Innersloth
         {
             Platform = (Platforms)reader.Tag;
             PlatformName = reader.ReadString();
-            var platformId = reader.ReadUInt64();
 
+            if (Platform is not Platforms.Xbox or Platforms.Playstation)
+            {
+                return;
+            }
+
+            var platformId = reader.ReadUInt64();
             XboxPlatformId = Platform == Platforms.Xbox ? platformId : null;
             PsnPlatformId = Platform == Platforms.Playstation ? platformId : null;
         }

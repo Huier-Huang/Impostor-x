@@ -244,7 +244,7 @@ namespace Impostor.Server
                     {
                         serverOptions.Listen(IPAddress.Parse(httpConfig.ListenIp), httpConfig.ListenPort, listenOptions =>
                         {
-                            listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+                            listenOptions.Protocols = HttpProtocols.Http1AndHttp2AndHttp3;
                         });
                     });
                 });
