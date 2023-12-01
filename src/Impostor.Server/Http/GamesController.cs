@@ -77,6 +77,7 @@ public sealed class GamesController : ControllerBase
     {
         var code = new GameCode(gameId);
         var game = _gameManager.Find(code);
+        
 
         // If the game was not found, print an error message.
         if (game == null)

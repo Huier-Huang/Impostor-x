@@ -20,11 +20,6 @@ internal class CompatibilityManager : ICompatibilityManager
         new[]
         {
             new GameVersion(2023, 10, 1), // 2023.10.24
-        },
-
-        new[]
-        {
-            new GameVersion(2023, 10, 1), // 2023.10.24
             new GameVersion(2023, 11, 15), // 2023.11.28
         },
     };
@@ -37,16 +32,16 @@ internal class CompatibilityManager : ICompatibilityManager
 
     static CompatibilityManager()
     {
-        SupportedVersionNames.Add(DefaultSupportedVersions[0].GameVersions[0], "2022.12.8");
+        /*SupportedVersionNames.Add(DefaultSupportedVersions[0].GameVersions[0], "2022.12.8");
         SupportedVersionNames.Add(DefaultSupportedVersions[1].GameVersions[0], "2022.12.14");
         SupportedVersionNames.Add(DefaultSupportedVersions[2].GameVersions[0], "2023.2.28");
         SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[0], "2023.3.28s");
         SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[1], "2023.3.28a");
         SupportedVersionNames.Add(DefaultSupportedVersions[3].GameVersions[2], "2023.6.13");
         SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[0], "2023.7.11");
-        SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[1], "2222.0.0(mod)");
-        SupportedVersionNames.Add(DefaultSupportedVersions[5].GameVersions[0], "2023.10.24");
-        SupportedVersionNames.Add(DefaultSupportedVersions[5].GameVersions[1], "2023.11.28");
+        SupportedVersionNames.Add(DefaultSupportedVersions[4].GameVersions[1], "2222.0.0(mod)");*/
+        SupportedVersionNames.Add(DefaultSupportedVersions[0].GameVersions[0], "2023.10.24");
+        SupportedVersionNames.Add(DefaultSupportedVersions[0].GameVersions[1], "2023.11.28");
     }
 
 

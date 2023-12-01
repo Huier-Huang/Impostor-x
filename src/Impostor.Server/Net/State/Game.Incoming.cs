@@ -29,11 +29,12 @@ namespace Impostor.Server.Net.State
         public async ValueTask HandleEndGame(IMessageReader message, GameOverReason gameOverReason)
         {
             GameState = GameStates.Ended;
-
+            
             // Broadcast end of the game.
             using (var packet = MessageWriter.Get(MessageType.Reliable))
             {
                 message.CopyTo(packet);
+                packet.StartMessage(1);
                 await SendToAllAsync(packet);
             }
 

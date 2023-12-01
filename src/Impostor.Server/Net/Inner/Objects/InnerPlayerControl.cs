@@ -31,7 +31,6 @@ namespace Impostor.Server.Net.Inner.Objects
         private readonly ILogger<InnerPlayerControl> _logger;
         private readonly IEventManager _eventManager;
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly Game _game;
 
         public InnerPlayerControl(ICustomMessageManager<ICustomRpc> customMessageManager, Game game, ILogger<InnerPlayerControl> logger, IServiceProvider serviceProvider, IEventManager eventManager, IDateTimeProvider dateTimeProvider) : base(customMessageManager, game)
         {
@@ -286,9 +285,8 @@ namespace Impostor.Server.Net.Inner.Objects
                         return false;
                     }
 
-                    Rpc12MurderPlayer.Deserialize(reader, Game, out var murdered, out var result);
-                    return await HandleMurderPlayer(sender, (InnerPlayerControl?)murdered, result);
-                    Rpc12MurderPlayer.Deserialize(reader, Game, out var murdered, out var murderer);
+                    Rpc12MurderPlayer.Deserialize(reader, Game, out var murdered, out var flags);
+                    return await HandleMurderPlayerAsync(sender, (InnerPlayerControl?)murdered, flags);
                 }
 
                 case RpcCalls.SendChat:
@@ -724,7 +722,7 @@ namespace Impostor.Server.Net.Inner.Objects
             return false;
         }
         
-        private async ValueTask<bool> HandleMurderPlayerAsync(ClientPlayer sender, IInnerPlayerControl? target, MurderResultFlags resultFlags)
+        private async ValueTask<bool> HandleMurderPlayerAsync(ClientPlayer sender, InnerPlayerControl? target, MurderResultFlags resultFlags)
         {
             if (!_game.IsHostAuthoritive)
             {
@@ -754,21 +752,21 @@ namespace Impostor.Server.Net.Inner.Objects
             if (target != null && !target.PlayerInfo.IsDead)
             {
                 // In host authoritive mode every client has to figure out if the kill was prevented by guardian protection on it's own
-                if ((result & MurderResultFlags.Succeeded) != 0 && target.IsProtected)
+                if ((resultFlags & MurderResultFlags.Succeeded) != 0 && target.IsProtected)
                 {
-                    result = (result & ~MurderResultFlags.Succeeded) | MurderResultFlags.FailedProtected;
+                    resultFlags = (resultFlags & ~MurderResultFlags.Succeeded) | MurderResultFlags.FailedProtected;
                 }
 
-                if (!result.IsFailed())
+                if (!resultFlags.IsFailed())
                 {
                     target.Die(DeathReason.Kill);
                 }
-                else if ((result & MurderResultFlags.FailedProtected) != 0)
+                else if ((resultFlags & MurderResultFlags.FailedProtected) != 0)
                 {
                     target.ProtectedOn = null;
                 }
 
-                await _eventManager.CallAsync(new PlayerMurderEvent(Game, sender, this, target, result));
+                await _eventManager.CallAsync(new PlayerMurderEvent(Game, sender, this, target, resultFlags));
             }
 
             IsMurdering = null;

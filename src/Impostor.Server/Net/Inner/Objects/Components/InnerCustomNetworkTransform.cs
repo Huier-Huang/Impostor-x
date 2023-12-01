@@ -46,32 +46,14 @@ namespace Impostor.Server.Net.Inner.Objects.Components
             Spawned,
         }
 
-        public Vector2 Position { get; private set; 
+        public Vector2 Position { get; private set; }
 
         public Vector2 LastPosSent { get; private set; }
 
         public Queue<Vector2> SendQueue { get; private set; }
 
         public Queue<Vector2> IncomingPosQueue { get; private set; }
-
-        public ValueTask<bool> SerializeOldAsync(IMessageWriter writer, bool initialState)
-        {
-            if (initialState)
-            {
-                writer.Write(_lastSequenceId);
-                writer.Write(Position);
-                return new ValueTask<bool>(true);
-            }
-
-            _lastSequenceId++;
-
-            writer.Write(_lastSequenceId);
-
-            // Impostor doesn't keep a memory of positions, so just send the last one
-            writer.WritePacked(1);
-            writer.Write(Position);
-            return new ValueTask<bool>(true);
-        }
+        
 
         public override ValueTask<bool> SerializeAsync(IMessageWriter writer, bool initialState)
         {
@@ -102,18 +84,11 @@ namespace Impostor.Server.Net.Inner.Objects.Components
 
             writer.Write(_lastSequenceId);
             writer.Write(Position);
-            writer.Write(Velocity);
             return new ValueTask<bool>(true);
         }
 
         public override async ValueTask DeserializeAsync(IClientPlayer sender, IClientPlayer? target, IMessageReader reader, bool initialState)
         {
-            if (sender.Client.GameVersion.Compare(new GameVersion(2023, 10, 1)) < 0)
-            {
-                await DeserializeOldAsync(sender, target, reader, initialState);
-                return;
-            }
-
             if (initialState)
             {
                 IncomingPosQueue.Clear();

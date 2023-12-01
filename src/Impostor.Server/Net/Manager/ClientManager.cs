@@ -90,12 +90,6 @@ namespace Impostor.Server.Net.Manager
                 return;
             }
 
-            if (name.Length > 10)
-            {
-                await connection.CustomDisconnectAsync(DisconnectReason.Custom, DisconnectMessages.UsernameLength);
-                return;
-            }
-
             if (string.IsNullOrWhiteSpace(name))
             {
                 await connection.CustomDisconnectAsync(DisconnectReason.Custom, DisconnectMessages.UsernameIllegalCharacters);
