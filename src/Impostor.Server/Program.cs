@@ -113,6 +113,7 @@ internal static class Program
 
                 services.AddSingleton<ICompatibilityManager, CompatibilityManager>();
                 services.AddSingleton<ClientManager>();
+                services.AddSingleton<PlayerAuthInfoManager>();
                 services.AddSingleton<IClientManager>(p => p.GetRequiredService<ClientManager>());
                 if (listenerConfig.EnabledDtlListener ||
                     (listenerConfig.EnabledAuthListener && !listenerConfig.EnabledUDPAuthListener))

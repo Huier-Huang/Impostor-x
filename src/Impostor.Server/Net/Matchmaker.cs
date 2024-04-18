@@ -3,6 +3,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using Impostor.Api.Config;
 using Impostor.Api.Events.Managers;
+using Impostor.Api.Http;
 using Impostor.Api.Innersloth;
 using Impostor.Api.Net;
 using Impostor.Api.Net.Messages.C2S;
@@ -26,8 +27,9 @@ internal class Matchmaker
     private readonly ListenerConfig _listenerConfig;
     private readonly NetListenerManager _netListenerManager;
     private X509Certificate2? _certificate;
+    private readonly PlayerAuthInfoManager _playerAuthInfoManager;
 
-    private int _lastId;
+    private uint _lastId = 1;
 
     public Matchmaker(
         IEventManager eventManager,
@@ -35,13 +37,16 @@ internal class Matchmaker
         ObjectPool<MessageReader>? readerPool,
         ILogger<HazelConnection> connectionLogger,
         NetListenerManager netListenerManager,
-        IOptions<ListenerConfig> listenerConfig)
+        IOptions<ListenerConfig> listenerConfig,
+        PlayerAuthInfoManager playerAuthInfoManager
+        )
     {
         _listenerConfig = listenerConfig.Value;
         _eventManager = eventManager;
         _clientManager = clientManager;
         _connectionLogger = connectionLogger;
         _netListenerManager = netListenerManager;
+        _playerAuthInfoManager = playerAuthInfoManager;
 
         _netListenerManager.SetObjectPool(readerPool);
     }
@@ -50,7 +55,7 @@ internal class Matchmaker
     {
         GetCertificate();
 
-        _netListenerManager.CreateListener(address, port, OnNewConnectionAsync);
+        _netListenerManager.CreateListener(address, port, newConnection => OnNewConnectionAsync(newConnection));
 
         if (_listenerConfig.EnabledAuthListener)
         {
@@ -69,7 +74,7 @@ internal class Matchmaker
         {
             var dtlPort = (ushort)(port + 3);
             var listener =
-                (DtlsConnectionListener)_netListenerManager.CreateListener(address, dtlPort, OnNewConnectionAsync, true)!;
+                (DtlsConnectionListener)_netListenerManager.CreateListener(address, dtlPort, newConnection => OnNewConnectionAsync(newConnection, true), true)!;
             listener.SetCertificate(_certificate);
         }
 
@@ -91,19 +96,64 @@ internal class Matchmaker
         var friendCode = reader.ReadString();
         _connectionLogger.LogInformation(
             $"version:{version}, platform{platformType} token{matchmakerToken} friendCode{friendCode}");
-        var writer = MessageWriter.Get(MessageType.Reliable);
-        writer.StartMessage(1);
-        writer.Write(_lastId);
-        writer.EndMessage();
-        await e.Connection.SendAsync(writer);
-        _lastId++;
+        if (_playerAuthInfoManager.TryGet(Token.Deserialize(matchmakerToken)!, out var playerAuthInfo))
+        {
+            if (playerAuthInfo.Version != version)
+            {
+                goto disconnect;
+            }
+
+            var writer = MessageWriter.Get();
+            writer.StartMessage(1);
+            writer.Write(_lastId);
+            writer.EndMessage();
+            await e.Connection.SendAsync(writer);
+            _lastId++;
+            playerAuthInfo.LastId = _lastId;
+            playerAuthInfo.FriendCode = friendCode;
+            playerAuthInfo.Platforms = platformType;
+            return;
+        }
+
+        disconnect:
+        await e.Connection.Disconnect("No Get Auth Info");
     }
 
-    private async ValueTask OnNewConnectionAsync(NewConnectionEventArgs e)
+    private async ValueTask OnNewConnectionAsync(NewConnectionEventArgs e, bool useDtl = false)
     {
         // Handshake.
-        HandshakeC2S.Deserialize(e.HandshakeData, out var clientVersion, out var name, out var language,
-            out var chatMode, out var platformSpecificData);
+        HandshakeC2S.Deserialize(
+            e.HandshakeData,
+            useDtl,
+            out var clientVersion,
+            out var name,
+            out var language,
+            out var chatMode,
+            out var platformSpecificData,
+            out var matchmakerToken,
+            out var lastId,
+            out var friendCode
+        );
+
+        PlayerAuthInfo info;
+        if (useDtl)
+        {
+            if (!_playerAuthInfoManager.TryGet(Token.Deserialize(matchmakerToken)!, out info!))
+            {
+                await e.Connection.Disconnect("No Get AuthInfo");
+                return;
+            }
+        }
+        else
+        {
+            if (!_playerAuthInfoManager.TryGet(lastId, out info!))
+            {
+                await e.Connection.Disconnect("No Get AuthInfo");
+                return;
+            }
+        }
+
+        info.FriendCode = friendCode;
 
         var connection = new HazelConnection(e.Connection, _connectionLogger);
 
@@ -111,7 +161,7 @@ internal class Matchmaker
 
         // Register client
         await _clientManager.RegisterConnectionAsync(connection, name, clientVersion, language, chatMode,
-            platformSpecificData);
+            platformSpecificData, info);
     }
 
     private void GetCertificate()

@@ -8,16 +8,18 @@ using Impostor.Api.Utils;
 
 namespace Impostor.Server.Net.Inner.Objects;
 
-internal partial class InnerPlayerInfo
+internal partial class InnerPlayerInfo(byte playerId)
 {
-    public InnerPlayerInfo(byte playerId)
+
+    public InnerPlayerInfo(byte playerId, string friendCode, string puid) : this(playerId)
     {
-        PlayerId = playerId;
+        FriendCode = friendCode;
+        Puid = puid;
     }
 
     public InnerPlayerControl? Controller { get; internal set; }
 
-    public byte PlayerId { get; }
+    public byte PlayerId { get; } = playerId;
 
     public bool Disconnected { get; internal set; }
 
@@ -26,6 +28,10 @@ internal partial class InnerPlayerInfo
     public List<InnerGameData.TaskInfo> Tasks { get; internal set; } = new(0);
 
     public string PlayerName { get; internal set; } = string.Empty;
+
+    public string FriendCode { get; set; } = string.Empty;
+
+    public string Puid { get; set; } = string.Empty;
 
     public Dictionary<PlayerOutfitType, PlayerOutfit> Outfits { get; } = new()
     {
@@ -104,5 +110,8 @@ internal partial class InnerPlayerInfo
         {
             Tasks[i].Deserialize(reader);
         }
+
+        FriendCode = reader.ReadString();
+        Puid = reader.ReadString();
     }
 }

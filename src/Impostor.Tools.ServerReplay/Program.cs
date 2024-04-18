@@ -172,7 +172,7 @@ internal static class Program
                 var connection = new MockHazelConnection(address);
 
                 await _clientManager.RegisterConnectionAsync(connection, name, gameVersion, Language.English,
-                    QuickChatModes.FreeChatOrQuickChat, new PlatformSpecificData(Platforms.Unknown, "ServerReplay"));
+                    QuickChatModes.FreeChatOrQuickChat, new PlatformSpecificData(Platforms.Unknown, "ServerReplay"), null);
 
                 // Store reference for ourselfs.
                 Connections.Add(clientId, connection);

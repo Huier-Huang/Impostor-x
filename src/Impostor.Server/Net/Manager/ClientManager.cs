@@ -56,7 +56,7 @@ internal partial class ClientManager
     }
 
     public async ValueTask RegisterConnectionAsync(IHazelConnection connection, string name, GameVersion clientVersion,
-        Language language, QuickChatModes chatMode, PlatformSpecificData? platformSpecificData)
+        Language language, QuickChatModes chatMode, PlatformSpecificData? platformSpecificData, PlayerAuthInfo? authInfo)
     {
         var versionCompare = _compatibilityManager.CanConnectToServer(clientVersion);
         if (versionCompare == ICompatibilityManager.VersionCompareResult.ServerTooOld &&
@@ -69,7 +69,8 @@ internal partial class ClientManager
         else if (versionCompare != ICompatibilityManager.VersionCompareResult.Compatible ||
                  platformSpecificData == null)
         {
-            _logger.LogInformation("Client connected using unsupported version: {clientVersion} ({version})",
+            _logger.LogInformation(
+                "Client connected using unsupported version: {clientVersion} ({version})",
                 clientVersion.Value, clientVersion.ToString());
 
             using var packet = MessageWriter.Get(MessageType.Reliable);
@@ -94,12 +95,13 @@ internal partial class ClientManager
 
         if (string.IsNullOrWhiteSpace(name))
         {
-            await connection.CustomDisconnectAsync(DisconnectReason.Custom,
+            await connection.CustomDisconnectAsync(
+                DisconnectReason.Custom,
                 DisconnectMessages.UsernameIllegalCharacters);
             return;
         }
 
-        var client = _clientFactory.Create(connection, name, clientVersion, language, chatMode, platformSpecificData);
+        var client = _clientFactory.Create(connection, name, clientVersion, language, chatMode, platformSpecificData, authInfo);
         var id = NextId();
 
         client.Id = id;

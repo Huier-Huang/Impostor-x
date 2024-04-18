@@ -28,8 +28,8 @@ internal class Client : ClientBase
     public Client(ILogger<Client> logger, IOptions<AntiCheatConfig> antiCheatOptions, ClientManager clientManager,
         GameManager gameManager, ICustomMessageManager<ICustomRootMessage> customMessageManager, string name,
         GameVersion gameVersion, Language language, QuickChatModes chatMode, PlatformSpecificData platformSpecificData,
-        IHazelConnection connection)
-        : base(name, gameVersion, language, chatMode, platformSpecificData, connection)
+        IHazelConnection connection, PlayerAuthInfo? authInfo)
+        : base(name, gameVersion, language, chatMode, platformSpecificData, connection, authInfo)
     {
         _logger = logger;
         _antiCheatConfig = antiCheatOptions.Value;

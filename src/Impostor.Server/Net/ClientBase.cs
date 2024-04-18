@@ -8,37 +8,35 @@ using Impostor.Server.Net.State;
 
 namespace Impostor.Server.Net;
 
-internal abstract class ClientBase : IClient
+internal abstract class ClientBase(
+    string name,
+    GameVersion gameVersion,
+    Language language,
+    QuickChatModes chatMode,
+    PlatformSpecificData platformSpecificData,
+    IHazelConnection connection, PlayerAuthInfo? authInfo)
+    : IClient
 {
-    protected ClientBase(string name, GameVersion gameVersion, Language language, QuickChatModes chatMode,
-        PlatformSpecificData platformSpecificData, IHazelConnection connection)
-    {
-        Name = name;
-        GameVersion = gameVersion;
-        Language = language;
-        ChatMode = chatMode;
-        PlatformSpecificData = platformSpecificData;
-        Connection = connection;
-        Items = new ConcurrentDictionary<object, object>();
-    }
 
     public ClientPlayer? Player { get; set; }
 
     public int Id { get; set; }
 
-    public string Name { get; }
+    public string Name { get; } = name;
 
-    public Language Language { get; }
+    public Language Language { get; } = language;
 
-    public QuickChatModes ChatMode { get; }
+    public QuickChatModes ChatMode { get; } = chatMode;
 
-    public PlatformSpecificData PlatformSpecificData { get; }
+    public PlatformSpecificData PlatformSpecificData { get; } = platformSpecificData;
 
-    public GameVersion GameVersion { get; }
+    public PlayerAuthInfo? PlayerAuthInfo { get; } = authInfo;
 
-    public IHazelConnection Connection { get; }
+    public GameVersion GameVersion { get; } = gameVersion;
 
-    public IDictionary<object, object> Items { get; }
+    public IHazelConnection Connection { get; } = connection;
+
+    public IDictionary<object, object> Items { get; } = new ConcurrentDictionary<object, object>();
 
     IClientPlayer? IClient.Player => Player;
 

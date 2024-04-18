@@ -12,6 +12,10 @@ public interface IInnerPlayerInfo
     /// </summary>
     string PlayerName { get; }
 
+    string FriendCode { get; }
+
+    string Puid { get; }
+
     /// <summary>
     ///     Gets the role type of the player.
     /// </summary>

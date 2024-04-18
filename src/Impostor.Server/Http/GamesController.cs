@@ -8,6 +8,7 @@ using System.Text.Json.Serialization;
 using Impostor.Api.Config;
 using Impostor.Api.Games;
 using Impostor.Api.Games.Managers;
+using Impostor.Api.Http;
 using Impostor.Api.Innersloth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -56,8 +57,7 @@ public sealed class GamesController : ControllerBase
             return BadRequest();
         }
 
-        var token =
-            JsonSerializer.Deserialize<TokenController.Token>(Convert.FromBase64String(authorization.Parameter));
+        var token = Token.Deserialize(authorization.Parameter);
         if (token == null)
         {
             return BadRequest();

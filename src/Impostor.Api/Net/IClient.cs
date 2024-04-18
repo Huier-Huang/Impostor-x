@@ -74,6 +74,8 @@ public interface IClient
     /// </summary>
     PlatformSpecificData PlatformSpecificData { get; }
 
+    PlayerAuthInfo? PlayerAuthInfo { get; }
+
     ValueTask<bool> ReportCheatAsync(CheatContext context, string message);
 
     ValueTask HandleMessageAsync(IMessageReader message, MessageType messageType);

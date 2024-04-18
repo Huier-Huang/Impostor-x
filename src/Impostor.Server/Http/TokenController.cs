@@ -1,7 +1,8 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Impostor.Api.Innersloth;
+using Impostor.Api.Http;
+using Impostor.Server.Net;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Impostor.Server.Http;
@@ -11,7 +12,7 @@ namespace Impostor.Server.Http;
 /// </summary>
 [Route("/api/user")]
 [ApiController]
-public sealed class TokenController : ControllerBase
+public sealed class TokenController(PlayerAuthInfoManager _playerAuthInfoManager) : ControllerBase
 {
     /// <summary>
     ///     Get an authentication token.
@@ -30,47 +31,9 @@ public sealed class TokenController : ControllerBase
             },
             Hash = "impostor_was_here",
         };
+        _playerAuthInfoManager.Register(request, token);
 
         // Wrap into a Base64 sandwich
-        var serialized = JsonSerializer.SerializeToUtf8Bytes(token);
-        return Ok(Convert.ToBase64String(serialized));
-    }
-
-    /// <summary>
-    ///     Body of the token request endpoint.
-    /// </summary>
-    public class TokenRequest
-    {
-        [JsonPropertyName("Puid")] public required string ProductUserId { get; init; }
-
-        [JsonPropertyName("Username")] public required string Username { get; init; }
-
-        [JsonPropertyName("ClientVersion")] public required int ClientVersion { get; init; }
-
-        [JsonPropertyName("Language")] public required Language Language { get; init; }
-    }
-
-    /// <summary>
-    ///     Token that is returned to the user with a "signature".
-    /// </summary>
-    public sealed class Token
-    {
-        [JsonPropertyName("Content")] public required TokenPayload Content { get; init; }
-
-        [JsonPropertyName("Hash")] public required string Hash { get; init; }
-    }
-
-    /// <summary>
-    ///     Actual token contents.
-    /// </summary>
-    public sealed class TokenPayload
-    {
-        private static readonly DateTime DefaultExpiryDate = new(2012, 12, 21);
-
-        [JsonPropertyName("Puid")] public required string ProductUserId { get; init; }
-
-        [JsonPropertyName("ClientVersion")] public required int ClientVersion { get; init; }
-
-        [JsonPropertyName("ExpiresAt")] public DateTime ExpiresAt { get; init; } = DefaultExpiryDate;
+        return Ok(token.Serialize());
     }
 }

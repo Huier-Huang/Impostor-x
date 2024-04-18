@@ -21,8 +21,8 @@ public class Message01JoinGameS2C
         writer.WritePacked(player.Character?.PlayerInfo.PlayerLevel ?? 1);
 
         // ProductUserId and FriendCode are not yet known, so set them to an empty string
-        writer.Write(string.Empty);
-        writer.Write(string.Empty);
+        writer.Write(player.Client.PlayerAuthInfo?.Puid ?? string.Empty);
+        writer.Write(player.Client.PlayerAuthInfo?.FriendCode ?? string.Empty);
         writer.EndMessage();
     }
 
