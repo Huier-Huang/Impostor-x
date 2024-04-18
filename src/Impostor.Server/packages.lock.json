@@ -56,6 +56,12 @@
         "resolved": "8.0.1",
         "contentHash": "X21b8D6z58EG34OMLH955750mFaEaGs5xLGe9Vyi3059Cgb3sk+p2k/JlQXaieEBRrk+SVlFzDei3Q6PdVzJOA=="
       },
+      "Portable.BouncyCastle": {
+        "type": "Direct",
+        "requested": "[1.9.0, )",
+        "resolved": "1.9.0",
+        "contentHash": "eZZBCABzVOek+id9Xy04HhmgykF0wZg9wpByzrWN7q8qEI0Qen9b7tfd7w8VA3dOeesumMG7C5ZPy0jk7PSRHw=="
+      },
       "Serilog.Extensions.Hosting": {
         "type": "Direct",
         "requested": "[8.0.0, )",

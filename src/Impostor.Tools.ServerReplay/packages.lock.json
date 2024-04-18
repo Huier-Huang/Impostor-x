@@ -340,6 +340,11 @@
         "resolved": "8.0.0",
         "contentHash": "bXJEZrW9ny8vjMF1JV253WeLhpEVzFo1lyaZu1vQ4ZxWUlVvknZ/+ftFgVheLubb4eZPSwwxBeqS1JkCOjxd8g=="
       },
+      "Portable.BouncyCastle": {
+        "type": "Transitive",
+        "resolved": "1.9.0",
+        "contentHash": "eZZBCABzVOek+id9Xy04HhmgykF0wZg9wpByzrWN7q8qEI0Qen9b7tfd7w8VA3dOeesumMG7C5ZPy0jk7PSRHw=="
+      },
       "Serilog": {
         "type": "Transitive",
         "resolved": "3.1.1",
@@ -416,6 +421,7 @@
           "Microsoft.Extensions.FileSystemGlobbing": "[8.0.0, )",
           "Microsoft.Extensions.Hosting": "[8.0.0, )",
           "Microsoft.Extensions.ObjectPool": "[8.0.1, )",
+          "Portable.BouncyCastle": "[1.9.0, )",
           "Serilog.Extensions.Hosting": "[8.0.0, )",
           "Serilog.Settings.Configuration": "[8.0.0, )",
           "Serilog.Sinks.Console": "[5.0.1, )"

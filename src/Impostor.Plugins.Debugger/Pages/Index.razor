@@ -1,10 +1,9 @@
 ﻿@page "/"
 @implements IDisposable
+@using Impostor.Api.Events
 @using Impostor.Api.Events.Managers
 @using Impostor.Api.Games.Managers
-@using Impostor.Api.Events
-@using Impostor.Api.Events.Player
-@implements Impostor.Api.Events.IEventListener
+@implements IEventListener
 @inject IEventManager EventManager
 @inject IGameManager GameManager
 
@@ -66,4 +65,5 @@
     {
         _disposable?.Dispose();
     }
+
 }

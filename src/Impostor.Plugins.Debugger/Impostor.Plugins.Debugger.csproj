@@ -9,11 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Impostor.Api\Impostor.Api.csproj" />
+    <ProjectReference Include="..\Impostor.Api\Impostor.Api.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Properties\" />
+    <Folder Include="Properties\"/>
   </ItemGroup>
 
 </Project>

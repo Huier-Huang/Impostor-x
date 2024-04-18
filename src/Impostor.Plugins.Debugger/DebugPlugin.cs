@@ -1,9 +1,8 @@
 using Impostor.Api.Plugins;
 
-namespace Impostor.Plugins.Debugger
+namespace Impostor.Plugins.Debugger;
+
+[ImpostorPlugin("gg.impostor.debugger")]
+public class DebugPlugin : PluginBase
 {
-    [ImpostorPlugin("gg.impostor.debugger")]
-    public class DebugPlugin : PluginBase
-    {
-    }
 }

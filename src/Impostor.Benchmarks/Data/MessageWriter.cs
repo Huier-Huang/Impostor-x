@@ -5,305 +5,335 @@ using System.Text;
 using Impostor.Api.Games;
 using Impostor.Hazel.Abstractions;
 
-namespace Impostor.Benchmarks.Data
+namespace Impostor.Benchmarks.Data;
+
+public class MessageWriter
 {
-    public class MessageWriter
+    private readonly Stack<int> _messageStarts = new();
+
+    public MessageWriter(byte[] buffer)
     {
-        public MessageType SendOption { get; private set; }
+        Buffer = buffer;
+        Length = Buffer.Length;
+    }
 
-        private readonly Stack<int> _messageStarts = new Stack<int>();
+    public MessageWriter(int bufferSize)
+    {
+        Buffer = new byte[bufferSize];
+    }
 
-        public MessageWriter(byte[] buffer)
+    public MessageType SendOption { get; private set; }
+
+    public byte[] Buffer { get; }
+    public int Length { get; set; }
+    public int Position { get; set; }
+
+    public byte[] ToByteArray(bool includeHeader)
+    {
+        if (includeHeader)
         {
-            this.Buffer = buffer;
-            this.Length = this.Buffer.Length;
+            var output = new byte[Length];
+            System.Buffer.BlockCopy(Buffer, 0, output, 0, Length);
+            return output;
         }
 
-        public MessageWriter(int bufferSize)
+        switch (SendOption)
         {
-            this.Buffer = new byte[bufferSize];
-        }
-
-        public byte[] Buffer { get; }
-        public int Length { get; set; }
-        public int Position { get; set; }
-
-        public byte[] ToByteArray(bool includeHeader)
-        {
-            if (includeHeader)
+            case MessageType.Reliable:
             {
-                var output = new byte[this.Length];
-                System.Buffer.BlockCopy(this.Buffer, 0, output, 0, this.Length);
+                var output = new byte[Length - 3];
+                System.Buffer.BlockCopy(Buffer, 3, output, 0, Length - 3);
                 return output;
             }
-            else
+            case MessageType.Unreliable:
             {
-                switch (this.SendOption)
-                {
-                    case MessageType.Reliable:
-                    {
-                        var output = new byte[this.Length - 3];
-                        System.Buffer.BlockCopy(this.Buffer, 3, output, 0, this.Length - 3);
-                        return output;
-                    }
-                    case MessageType.Unreliable:
-                    {
-                        var output = new byte[this.Length - 1];
-                        System.Buffer.BlockCopy(this.Buffer, 1, output, 0, this.Length - 1);
-                        return output;
-                    }
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
+                var output = new byte[Length - 1];
+                System.Buffer.BlockCopy(Buffer, 1, output, 0, Length - 1);
+                return output;
             }
-
-            throw new NotImplementedException();
+            default:
+                throw new ArgumentOutOfRangeException();
         }
 
-        public bool HasBytes(int expected)
+        throw new NotImplementedException();
+    }
+
+    public bool HasBytes(int expected)
+    {
+        if (SendOption == MessageType.Unreliable)
         {
-            if (this.SendOption == MessageType.Unreliable)
+            return Length > 1 + expected;
+        }
+
+        return Length > 3 + expected;
+    }
+
+    public void Write(GameCode value)
+    {
+        Write(value.Value);
+    }
+
+    ///
+    public void StartMessage(byte typeFlag)
+    {
+        _messageStarts.Push(Position);
+        Position += 2; // Skip for size
+        Write(typeFlag);
+    }
+
+    ///
+    public void EndMessage()
+    {
+        var lastMessageStart = _messageStarts.Pop();
+        var length = (ushort)(Position - lastMessageStart - 3); // Minus length and type byte
+        Buffer[lastMessageStart] = (byte)length;
+        Buffer[lastMessageStart + 1] = (byte)(length >> 8);
+    }
+
+    ///
+    public void CancelMessage()
+    {
+        Position = _messageStarts.Pop();
+        Length = Position;
+    }
+
+    public void Clear(MessageType sendOption)
+    {
+        _messageStarts.Clear();
+        SendOption = sendOption;
+        Buffer[0] = (byte)sendOption;
+        switch (sendOption)
+        {
+            default:
+            case MessageType.Unreliable:
+                Length = Position = 1;
+                break;
+
+            case MessageType.Reliable:
+                Length = Position = 3;
+                break;
+        }
+    }
+
+    public void Write(MessageWriter msg, bool includeHeader)
+    {
+        var offset = 0;
+        if (!includeHeader)
+        {
+            switch (msg.SendOption)
             {
-                return this.Length > 1 + expected;
-            }
-
-            return this.Length > 3 + expected;
-        }
-
-        public void Write(GameCode value)
-        {
-            this.Write(value.Value);
-        }
-
-        ///
-        public void StartMessage(byte typeFlag)
-        {
-            _messageStarts.Push(this.Position);
-            this.Position += 2; // Skip for size
-            this.Write(typeFlag);
-        }
-
-        ///
-        public void EndMessage()
-        {
-            var lastMessageStart = _messageStarts.Pop();
-            var length = (ushort)(this.Position - lastMessageStart - 3); // Minus length and type byte
-            this.Buffer[lastMessageStart] = (byte)length;
-            this.Buffer[lastMessageStart + 1] = (byte)(length >> 8);
-        }
-
-        ///
-        public void CancelMessage()
-        {
-            this.Position = this._messageStarts.Pop();
-            this.Length = this.Position;
-        }
-
-        public void Clear(MessageType sendOption)
-        {
-            this._messageStarts.Clear();
-            this.SendOption = sendOption;
-            this.Buffer[0] = (byte)sendOption;
-            switch (sendOption)
-            {
-                default:
                 case MessageType.Unreliable:
-                    this.Length = this.Position = 1;
+                    offset = 1;
                     break;
 
                 case MessageType.Reliable:
-                    this.Length = this.Position = 3;
+                    offset = 3;
                     break;
             }
         }
 
-        #region WriteMethods
+        Write(msg.Buffer, offset, msg.Length - offset);
+    }
 
-        public void Write(bool value)
+    public static unsafe bool IsLittleEndian()
+    {
+        byte b;
+        var i = 1;
+        var bp = (byte*)&i;
+        b = *bp;
+
+        return b == 1;
+    }
+
+    #region WriteMethods
+
+    public void Write(bool value)
+    {
+        Buffer[Position++] = (byte)(value ? 1 : 0);
+        if (Position > Length)
         {
-            this.Buffer[this.Position++] = (byte)(value ? 1 : 0);
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public void Write(sbyte value)
-        {
-            this.Buffer[this.Position++] = (byte)value;
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public void Write(byte value)
-        {
-            this.Buffer[this.Position++] = value;
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public void Write(short value)
-        {
-            this.Buffer[this.Position++] = (byte)value;
-            this.Buffer[this.Position++] = (byte)(value >> 8);
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public void Write(ushort value)
-        {
-            this.Buffer[this.Position++] = (byte)value;
-            this.Buffer[this.Position++] = (byte)(value >> 8);
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public void Write(uint value)
-        {
-            this.Buffer[this.Position++] = (byte)value;
-            this.Buffer[this.Position++] = (byte)(value >> 8);
-            this.Buffer[this.Position++] = (byte)(value >> 16);
-            this.Buffer[this.Position++] = (byte)(value >> 24);
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public void Write(int value)
-        {
-            this.Buffer[this.Position++] = (byte)value;
-            this.Buffer[this.Position++] = (byte)(value >> 8);
-            this.Buffer[this.Position++] = (byte)(value >> 16);
-            this.Buffer[this.Position++] = (byte)(value >> 24);
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public unsafe void Write(float value)
-        {
-            fixed (byte* ptr = &this.Buffer[this.Position])
-            {
-                var valuePtr = (byte*)&value;
-
-                *ptr = *valuePtr;
-                *(ptr + 1) = *(valuePtr + 1);
-                *(ptr + 2) = *(valuePtr + 2);
-                *(ptr + 3) = *(valuePtr + 3);
-            }
-
-            this.Position += 4;
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public void Write(string value)
-        {
-            var bytes = UTF8Encoding.UTF8.GetBytes(value);
-            this.WritePacked(bytes.Length);
-            this.Write(bytes);
-        }
-
-        public void Write(IPAddress value)
-        {
-            this.Write(value.GetAddressBytes());
-        }
-
-        public void WriteBytesAndSize(byte[] bytes)
-        {
-            this.WritePacked((uint)bytes.Length);
-            this.Write(bytes);
-        }
-
-        public void WriteBytesAndSize(byte[] bytes, int length)
-        {
-            this.WritePacked((uint)length);
-            this.Write(bytes, length);
-        }
-
-        public void WriteBytesAndSize(byte[] bytes, int offset, int length)
-        {
-            this.WritePacked((uint)length);
-            this.Write(bytes, offset, length);
-        }
-
-        public void Write(ReadOnlyMemory<byte> data)
-        {
-            Write(data.Span);
-        }
-
-        public void Write(ReadOnlySpan<byte> bytes)
-        {
-            bytes.CopyTo(this.Buffer.AsSpan(this.Position, bytes.Length));
-
-            this.Position += bytes.Length;
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public void Write(byte[] bytes)
-        {
-            Array.Copy(bytes, 0, this.Buffer, this.Position, bytes.Length);
-            this.Position += bytes.Length;
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public void Write(byte[] bytes, int offset, int length)
-        {
-            Array.Copy(bytes, offset, this.Buffer, this.Position, length);
-            this.Position += length;
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        public void Write(byte[] bytes, int length)
-        {
-            Array.Copy(bytes, 0, this.Buffer, this.Position, length);
-            this.Position += length;
-            if (this.Position > this.Length) this.Length = this.Position;
-        }
-
-        ///
-        public void WritePacked(int value)
-        {
-            this.WritePacked((uint)value);
-        }
-
-        ///
-        public void WritePacked(uint value)
-        {
-            do
-            {
-                var b = (byte)(value & 0xFF);
-                if (value >= 0x80)
-                {
-                    b |= 0x80;
-                }
-
-                this.Write(b);
-                value >>= 7;
-            } while (value > 0);
-        }
-
-        #endregion WriteMethods
-
-        public void Write(MessageWriter msg, bool includeHeader)
-        {
-            var offset = 0;
-            if (!includeHeader)
-            {
-                switch (msg.SendOption)
-                {
-                    case MessageType.Unreliable:
-                        offset = 1;
-                        break;
-
-                    case MessageType.Reliable:
-                        offset = 3;
-                        break;
-                }
-            }
-
-            this.Write(msg.Buffer, offset, msg.Length - offset);
-        }
-
-        public static unsafe bool IsLittleEndian()
-        {
-            byte b;
-            unsafe
-            {
-                var i = 1;
-                var bp = (byte*)&i;
-                b = *bp;
-            }
-
-            return b == 1;
+            Length = Position;
         }
     }
+
+    public void Write(sbyte value)
+    {
+        Buffer[Position++] = (byte)value;
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    public void Write(byte value)
+    {
+        Buffer[Position++] = value;
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    public void Write(short value)
+    {
+        Buffer[Position++] = (byte)value;
+        Buffer[Position++] = (byte)(value >> 8);
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    public void Write(ushort value)
+    {
+        Buffer[Position++] = (byte)value;
+        Buffer[Position++] = (byte)(value >> 8);
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    public void Write(uint value)
+    {
+        Buffer[Position++] = (byte)value;
+        Buffer[Position++] = (byte)(value >> 8);
+        Buffer[Position++] = (byte)(value >> 16);
+        Buffer[Position++] = (byte)(value >> 24);
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    public void Write(int value)
+    {
+        Buffer[Position++] = (byte)value;
+        Buffer[Position++] = (byte)(value >> 8);
+        Buffer[Position++] = (byte)(value >> 16);
+        Buffer[Position++] = (byte)(value >> 24);
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    public unsafe void Write(float value)
+    {
+        fixed (byte* ptr = &Buffer[Position])
+        {
+            var valuePtr = (byte*)&value;
+
+            *ptr = *valuePtr;
+            *(ptr + 1) = *(valuePtr + 1);
+            *(ptr + 2) = *(valuePtr + 2);
+            *(ptr + 3) = *(valuePtr + 3);
+        }
+
+        Position += 4;
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    public void Write(string value)
+    {
+        var bytes = Encoding.UTF8.GetBytes(value);
+        WritePacked(bytes.Length);
+        Write(bytes);
+    }
+
+    public void Write(IPAddress value)
+    {
+        Write(value.GetAddressBytes());
+    }
+
+    public void WriteBytesAndSize(byte[] bytes)
+    {
+        WritePacked((uint)bytes.Length);
+        Write(bytes);
+    }
+
+    public void WriteBytesAndSize(byte[] bytes, int length)
+    {
+        WritePacked((uint)length);
+        Write(bytes, length);
+    }
+
+    public void WriteBytesAndSize(byte[] bytes, int offset, int length)
+    {
+        WritePacked((uint)length);
+        Write(bytes, offset, length);
+    }
+
+    public void Write(ReadOnlyMemory<byte> data)
+    {
+        Write(data.Span);
+    }
+
+    public void Write(ReadOnlySpan<byte> bytes)
+    {
+        bytes.CopyTo(Buffer.AsSpan(Position, bytes.Length));
+
+        Position += bytes.Length;
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    public void Write(byte[] bytes)
+    {
+        Array.Copy(bytes, 0, Buffer, Position, bytes.Length);
+        Position += bytes.Length;
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    public void Write(byte[] bytes, int offset, int length)
+    {
+        Array.Copy(bytes, offset, Buffer, Position, length);
+        Position += length;
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    public void Write(byte[] bytes, int length)
+    {
+        Array.Copy(bytes, 0, Buffer, Position, length);
+        Position += length;
+        if (Position > Length)
+        {
+            Length = Position;
+        }
+    }
+
+    ///
+    public void WritePacked(int value)
+    {
+        WritePacked((uint)value);
+    }
+
+    ///
+    public void WritePacked(uint value)
+    {
+        do
+        {
+            var b = (byte)(value & 0xFF);
+            if (value >= 0x80)
+            {
+                b |= 0x80;
+            }
+
+            Write(b);
+            value >>= 7;
+        } while (value > 0);
+    }
+
+    #endregion WriteMethods
 }

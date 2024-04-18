@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Impostor.Api.Events;
 using Impostor.Api.Events.Managers;
 using Impostor.Api.Innersloth.GameOptions;
 using Impostor.Server.Events;
@@ -8,8 +9,8 @@ namespace Impostor.Server.Net.Inner.Objects.GameManager.Logic;
 
 internal abstract class LogicOptions : GameLogicComponent
 {
-    private readonly Game _game;
     private readonly IEventManager _eventManager;
+    private readonly Game _game;
 
     protected LogicOptions(Game game, IEventManager eventManager)
     {
@@ -28,7 +29,7 @@ internal abstract class LogicOptions : GameLogicComponent
         GameOptionsFactory.DeserializeInto(reader, _game.Options);
         await _eventManager.CallAsync(new GameOptionsChangedEvent(
             _game,
-            Api.Events.IGameOptionsChangedEvent.ChangeReason.Host
+            IGameOptionsChangedEvent.ChangeReason.Host
         ));
     }
 }

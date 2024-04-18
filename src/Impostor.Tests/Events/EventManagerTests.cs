@@ -6,169 +6,192 @@ using Impostor.Server.Events;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
-namespace Impostor.Tests.Events
+namespace Impostor.Tests.Events;
+
+public class EventManagerTests
 {
-    public class EventManagerTests
+    public enum TestMode
     {
-        public static readonly IEnumerable<object[]> TestModes = new[]
+        Service,
+        Temporary,
+    }
+
+    public static readonly IEnumerable<object[]> TestModes = new[]
+    {
+        new object[] { TestMode.Service },
+        new object[] { TestMode.Temporary },
+    };
+
+    [Theory]
+    [MemberData(nameof(TestModes))]
+    public async Task CallEvent(TestMode mode)
+    {
+        var listener = new EventListener();
+        var eventManager = CreatEventManager(mode, listener);
+
+        await eventManager.CallAsync(new SetValueEvent(1));
+
+        Assert.Equal(1, listener.Value);
+    }
+
+    [Theory]
+    [MemberData(nameof(TestModes))]
+    public async Task CallPriority(TestMode mode)
+    {
+        var listener = new PriorityEventListener();
+        var eventManager = CreatEventManager(mode, listener);
+
+        await eventManager.CallAsync(new SetValueEvent(1));
+
+        Assert.Equal(new[]
         {
-            new object[] { TestMode.Service },
-            new object[] { TestMode.Temporary },
-        };
+            EventPriority.Monitor,
+            EventPriority.Highest,
+            EventPriority.High,
+            EventPriority.Normal,
+            EventPriority.Low,
+            EventPriority.Lowest,
+        }, listener.Priorities);
+    }
 
-        [Theory]
-        [MemberData(nameof(TestModes))]
-        public async Task CallEvent(TestMode mode)
+    [Theory]
+    [MemberData(nameof(TestModes))]
+    public async Task CancelEvent(TestMode mode)
+    {
+        var listener = new EventListener();
+        var eventManager = CreatEventManager(
+            mode,
+            new CancelAtHighEventListener(),
+            listener
+        );
+
+        await eventManager.CallAsync(new SetValueEvent(1));
+
+        Assert.Equal(0, listener.Value);
+    }
+
+    [Theory]
+    [MemberData(nameof(TestModes))]
+    public async Task CancelPriority(TestMode mode)
+    {
+        var listener = new PriorityEventListener();
+        var eventManager = CreatEventManager(
+            mode,
+            new CancelAtHighEventListener(),
+            listener
+        );
+
+        await eventManager.CallAsync(new SetValueEvent(1));
+
+        Assert.Equal(new[]
         {
-            var listener = new EventListener();
-            var eventManager = CreatEventManager(mode, listener);
+            EventPriority.Monitor,
+            EventPriority.Highest,
+        }, listener.Priorities);
+    }
 
-            await eventManager.CallAsync(new SetValueEvent(1));
+    private static IEventManager CreatEventManager(TestMode mode, params IEventListener[] listeners)
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSingleton<IEventManager, EventManager>();
 
-            Assert.Equal(1, listener.Value);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestModes))]
-        public async Task CallPriority(TestMode mode)
+        if (mode == TestMode.Service)
         {
-            var listener = new PriorityEventListener();
-            var eventManager = CreatEventManager(mode, listener);
-
-            await eventManager.CallAsync(new SetValueEvent(1));
-
-            Assert.Equal(new[]
+            foreach (var listener in listeners)
             {
-                EventPriority.Monitor,
-                EventPriority.Highest,
-                EventPriority.High,
-                EventPriority.Normal,
-                EventPriority.Low,
-                EventPriority.Lowest,
-            }, listener.Priorities);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestModes))]
-        public async Task CancelEvent(TestMode mode)
-        {
-            var listener = new EventListener();
-            var eventManager = CreatEventManager(
-                mode,
-                new CancelAtHighEventListener(),
-                listener
-            );
-
-            await eventManager.CallAsync(new SetValueEvent(1));
-
-            Assert.Equal(0, listener.Value);
-        }
-
-        [Theory]
-        [MemberData(nameof(TestModes))]
-        public async Task CancelPriority(TestMode mode)
-        {
-            var listener = new PriorityEventListener();
-            var eventManager = CreatEventManager(
-                mode,
-                new CancelAtHighEventListener(),
-                listener
-            );
-
-            await eventManager.CallAsync(new SetValueEvent(1));
-
-            Assert.Equal(new[]
-            {
-                EventPriority.Monitor,
-                EventPriority.Highest,
-            }, listener.Priorities);
-        }
-
-        private static IEventManager CreatEventManager(TestMode mode, params IEventListener[] listeners)
-        {
-            var services = new ServiceCollection();
-            services.AddLogging();
-            services.AddSingleton<IEventManager, EventManager>();
-
-            if (mode == TestMode.Service)
-            {
-                foreach (var listener in listeners)
-                {
-                    services.AddSingleton(listener);
-                }
+                services.AddSingleton(listener);
             }
+        }
 
-            var eventManager = services.BuildServiceProvider().GetRequiredService<IEventManager>();
+        var eventManager = services.BuildServiceProvider().GetRequiredService<IEventManager>();
 
-            if (mode == TestMode.Temporary)
+        if (mode == TestMode.Temporary)
+        {
+            foreach (var listener in listeners)
             {
-                foreach (var listener in listeners)
-                {
-                    eventManager.RegisterListener(listener);
-                }
+                eventManager.RegisterListener(listener);
             }
-
-            return eventManager;
         }
 
-        public enum TestMode
+        return eventManager;
+    }
+
+    public interface ISetValueEvent : IEventCancelable
+    {
+        int Value { get; }
+    }
+
+    public class SetValueEvent : ISetValueEvent
+    {
+        public SetValueEvent(int value)
         {
-            Service,
-            Temporary,
+            Value = value;
         }
 
-        public interface ISetValueEvent : IEventCancelable
+        public int Value { get; }
+
+        public bool IsCancelled { get; set; }
+    }
+
+    private class CancelAtHighEventListener : IEventListener
+    {
+        [EventListener(Priority = EventPriority.High)]
+        public void OnSetCalled(ISetValueEvent e)
         {
-            int Value { get; }
+            e.IsCancelled = true;
+        }
+    }
+
+    private class EventListener : IEventListener
+    {
+        public int Value { get; private set; }
+
+        [EventListener]
+        public void OnSetCalled(ISetValueEvent e)
+        {
+            Value = e.Value;
+        }
+    }
+
+    private class PriorityEventListener : IEventListener
+    {
+        public List<EventPriority> Priorities { get; } = new();
+
+        [EventListener(EventPriority.Lowest)]
+        public void OnLowest(ISetValueEvent e)
+        {
+            Priorities.Add(EventPriority.Lowest);
         }
 
-        public class SetValueEvent : ISetValueEvent
+        [EventListener(EventPriority.Low)]
+        public void OnLow(ISetValueEvent e)
         {
-            public SetValueEvent(int value)
-            {
-                Value = value;
-            }
-
-            public int Value { get; }
-
-            public bool IsCancelled { get; set; }
+            Priorities.Add(EventPriority.Low);
         }
 
-        private class CancelAtHighEventListener : IEventListener
+        [EventListener]
+        public void OnNormal(ISetValueEvent e)
         {
-            [EventListener(Priority = EventPriority.High)]
-            public void OnSetCalled(ISetValueEvent e) => e.IsCancelled = true;
+            Priorities.Add(EventPriority.Normal);
         }
 
-        private class EventListener : IEventListener
+        [EventListener(EventPriority.High)]
+        public void OnHigh(ISetValueEvent e)
         {
-            public int Value { get; private set; }
-
-            [EventListener]
-            public void OnSetCalled(ISetValueEvent e) => Value = e.Value;
+            Priorities.Add(EventPriority.High);
         }
 
-        private class PriorityEventListener : IEventListener
+        [EventListener(EventPriority.Highest)]
+        public void OnHighest(ISetValueEvent e)
         {
-            public List<EventPriority> Priorities { get; } = new List<EventPriority>();
+            Priorities.Add(EventPriority.Highest);
+        }
 
-            [EventListener(EventPriority.Lowest)]
-            public void OnLowest(ISetValueEvent e) => Priorities.Add(EventPriority.Lowest);
-
-            [EventListener(EventPriority.Low)]
-            public void OnLow(ISetValueEvent e) => Priorities.Add(EventPriority.Low);
-
-            [EventListener]
-            public void OnNormal(ISetValueEvent e) => Priorities.Add(EventPriority.Normal);
-
-            [EventListener(EventPriority.High)]
-            public void OnHigh(ISetValueEvent e) => Priorities.Add(EventPriority.High);
-
-            [EventListener(EventPriority.Highest)]
-            public void OnHighest(ISetValueEvent e) => Priorities.Add(EventPriority.Highest);
-
-            [EventListener(EventPriority.Monitor)]
-            public void OnMonitor(ISetValueEvent e) => Priorities.Add(EventPriority.Monitor);
+        [EventListener(EventPriority.Monitor)]
+        public void OnMonitor(ISetValueEvent e)
+        {
+            Priorities.Add(EventPriority.Monitor);
         }
     }
 }

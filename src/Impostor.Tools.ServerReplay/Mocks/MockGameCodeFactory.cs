@@ -1,14 +1,13 @@
 ﻿using Impostor.Api.Games;
 
-namespace Impostor.Tools.ServerReplay.Mocks
-{
-    public class MockGameCodeFactory : IGameCodeFactory
-    {
-        public GameCode Result { get; set; }
+namespace Impostor.Tools.ServerReplay.Mocks;
 
-        public GameCode Create()
-        {
-            return Result;
-        }
+public class MockGameCodeFactory : IGameCodeFactory
+{
+    public GameCode Result { get; set; }
+
+    public GameCode Create()
+    {
+        return Result;
     }
 }
