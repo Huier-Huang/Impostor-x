@@ -41,6 +41,7 @@ namespace Impostor.Server
         {
             Log.Logger = new LoggerConfiguration()
                 .WriteTo.Console()
+                .WriteTo.File("LogOut.log")
                 .CreateBootstrapLogger();
 
             try
@@ -162,6 +163,10 @@ namespace Impostor.Server
                     {
                         logLevel = LogEventLevel.Error;
                     }
+                    else if (args.Contains("--debug"))
+                    {
+                        logLevel = LogEventLevel.Debug;
+                    }
 
                     static Assembly? LoadSerilogAssembly(AssemblyLoadContext loadContext, AssemblyName name)
                     {
@@ -206,6 +211,7 @@ namespace Impostor.Server
                     builder.ConfigureServices(services =>
                     {
                         services.AddControllers();
+                        services.AddSpaStaticFiles();
                     });
 
                     builder.Configure(app =>
@@ -219,8 +225,12 @@ namespace Impostor.Server
                             }
                         }
 
+                        app.UseSpa(spaBuilder =>
+                        {
+                            
+                        });
+                        app.UseSpaStaticFiles();
                         app.UseRouting();
-
                         app.UseEndpoints(endpoints =>
                         {
                             endpoints.MapControllers();

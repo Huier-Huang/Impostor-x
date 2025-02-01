@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Net;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Impostor.Api.Config;
@@ -55,6 +57,36 @@ namespace Impostor.Server.Net
                 _logger.LogWarning("Your HTTP server is exposed to the public internet, we recommend setting up a reverse proxy and enabling HTTPS");
                 _logger.LogWarning("See https://github.com/Impostor/Impostor/blob/master/docs/Http-server.md for instructions");
             }
+
+            if (_serverConfig.FrpPublicIp != "127.0.0.1")
+            {
+                StartFrpAsync(cancellationToken);
+            }
+        }
+
+        public void StartFrpAsync(CancellationToken cancellationToken)
+        {
+            Task.Run(
+                () =>
+            {
+                var info = new ProcessStartInfo
+                {
+                    FileName = "/bin/bash",
+                    Arguments = "-c \"java -jar /home/container/MossFrpJava.jar -MossFrp=nb\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                };
+                var process = Process.Start(info);
+                if (process == null)
+                {
+                    return;
+                }
+
+                process.OutputDataReceived += (sender, e) => _logger.LogInformation(e.Data);
+                process.Exited += (_, _) => process = null;
+                process.BeginOutputReadLine();
+            }, cancellationToken);
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

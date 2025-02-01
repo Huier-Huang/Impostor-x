@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Threading.Tasks;
 using Impostor.Api.Net;
 using Impostor.Hazel;
@@ -60,19 +61,26 @@ namespace Impostor.Server.Net.Hazel
 
             while (true)
             {
-                if (e.Message.Position >= e.Message.Length)
+                try
                 {
-                    break;
-                }
+                    if (e.Message.Position >= e.Message.Length)
+                    {
+                        break;
+                    }
 
-                using (var message = e.Message.ReadMessage())
-                {
-                    await Client.HandleMessageAsync(message, e.Type);
-                }
+                    using (var message = e.Message.ReadMessage())
+                    {
+                        await Client.HandleMessageAsync(message, e.Type);
+                    }
 
-                if (!IsConnected)
+                    if (!IsConnected)
+                    {
+                        break;
+                    }
+                }
+                catch (Exception exception)
                 {
-                    break;
+                    _logger.LogError("Error handling message. {ip}:\n{ex}", e.Sender.EndPoint.ToString(), exception);
                 }
             }
         }

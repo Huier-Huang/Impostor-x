@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using Impostor.Api.Events.Managers;
 using Impostor.Api.Net.Messages.C2S;
+using Impostor.Api.Utils;
 using Impostor.Hazel;
 using Impostor.Hazel.Udp;
 using Impostor.Server.Events.Client;
@@ -21,6 +22,7 @@ namespace Impostor.Server.Net
         private readonly ObjectPool<MessageReader> _readerPool;
         private readonly ILogger<HazelConnection> _connectionLogger;
         private UdpConnectionListener? _connection;
+        private UdpConnectionListener? _localConnection;
 
         public Matchmaker(
             IEventManager eventManager,

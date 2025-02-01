@@ -19,9 +19,9 @@
     "EnableColorLimitChecks": true,
     "EnableNameLimitChecks": true,
     "EnableOwnershipChecks": true,
-    "EnableRoleChecks": true,
+    "EnableRoleChecks": false,
     "EnableTargetChecks": true,
-    "ForbidProtocolExtensions": true
+    "ForbidProtocolExtensions": false
   },
   "Timeout": {
     "SpawnTimeout": 2500,
